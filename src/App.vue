@@ -17,12 +17,18 @@
   color: #2c3e50;
 }
   .even-rows{
-    background-color: #f6f6f6;
+    background-color: #f4f4f4;
     .ant-progress-inner {
       background: #ececec;
     }
   }
   .ant-table-small > .ant-table-content > .ant-table-body{
     margin: 0 !important;
+  }
+  .buy-trade{
+    color: #006a00;
+  }
+  .sell-trade{
+    color: #af0e00;
   }
 </style>
