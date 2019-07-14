@@ -1,6 +1,6 @@
 <template>
-  <a-card title="操作" :headStyle="headStyle" :bodyStyle="bodyStyle">
-    <div>111</div>
+  <a-card title="策略操作面板" :headStyle="headStyle" :bodyStyle="bodyStyle">
+    <div>正在开发中...</div>
   </a-card>
 </template>
 

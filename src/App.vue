@@ -31,4 +31,10 @@
   .sell-trade{
     color: #af0e00;
   }
+  .ant-badge-count{
+    height: 14px !important;
+    line-height: 14px !important;
+    top:-8px !important;
+    right:-5px !important;
+  }
 </style>

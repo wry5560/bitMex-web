@@ -9,9 +9,34 @@
         <span style="display: inline-block;width: calc(100% - 120px);height: 400px;float: right">
           <template>
             <a-tabs>
-              <a-tab-pane tab="钱包" key="1">Content of tab 1</a-tab-pane>
-              <a-tab-pane tab="交易历史" key="2">Content of tab 2</a-tab-pane>
-              <a-tab-pane tab="委托历史" key="3">Content of tab 3</a-tab-pane>
+              <a-tab-pane tab="账户余额" key="1">
+                <a-row class="even-rows wapper">
+                    <a-col :lg="12"><b>钱包余额:</b></a-col>
+                  <a-col :lg="12" style="text-align: right"><b>{{(marginData.walletBalance/100000000).toFixed(6).slice(0,-2)}}</b></a-col>
+                </a-row>
+                <a-row class="wapper">
+                  <a-col :lg="12"><b>未实现盈亏:</b></a-col>
+                  <a-col :lg="12" style="text-align: right"><b>{{(marginData.unrealisedPnl/100000000).toFixed(6).slice(0,-2)}}</b></a-col>
+                </a-row>
+                <a-row class="even-rows wapper">
+                  <a-col :lg="12"><b>保证金余额:</b></a-col>
+                  <a-col :lg="12" style="text-align: right"><b>{{(marginData.marginBalance/100000000).toFixed(6).slice(0,-2)}}</b></a-col>
+                </a-row>
+                <a-row class="wapper">
+                  <a-col :lg="12"><b>仓位保证金:</b></a-col>
+                  <a-col :lg="12" style="text-align: right"><b>{{(marginData.maintMargin/100000000).toFixed(6).slice(0,-2)}}</b></a-col>
+                </a-row>
+                <a-row class="even-rows wapper">
+                  <a-col :lg="12"><b>委托保证金:</b></a-col>
+                  <a-col :lg="12" style="text-align: right"><b>{{(marginData.initMargin/100000000).toFixed(6).slice(0,-2)}}</b></a-col>
+                </a-row>
+                <a-row class="wapper">
+                  <a-col :lg="12"><b>可用余额:</b></a-col>
+                  <a-col :lg="12" style="text-align: right"><b>{{(marginData.availableMargin/100000000).toFixed(6).slice(0,-2)}}</b></a-col>
+                </a-row>
+              </a-tab-pane>
+              <a-tab-pane tab="充提币记录" key="2">正在开发中...</a-tab-pane>
+              <!--<a-tab-pane tab="委托历史" key="3">Content of tab 3</a-tab-pane>-->
             </a-tabs>
           </template>
         </span>
@@ -23,7 +48,9 @@
 export default {
   name: 'userPannel',
   props:{
-    users:Array
+    users:Array,
+    marginData:Object,
+
   },
   data () {
     return {
@@ -66,5 +93,7 @@ export default {
 </script>
 
 <style scoped>
-
+.wapper{
+  padding:4px 24px
+}
 </style>

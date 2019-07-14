@@ -2,7 +2,7 @@
   <div class="home">
     <a-row :gutter="16" style="margin-bottom: 16px">
       <a-col :lg="10">
-        <user-pannel :users="users" @select="changeCurrentUser"></user-pannel>
+        <user-pannel :users="users" :marginData="userData.margin" @select="changeCurrentUser"></user-pannel>
       </a-col>
       <a-col :lg="7">
         <order-book-pannel :price="orderBookProps.price" :side="orderBookProps.side" :sellOrder="wsDatas.orders.sell" :buyOrder="wsDatas.orders.buy"/>
@@ -13,7 +13,7 @@
     </a-row>
     <a-row :gutter="16">
       <a-col :lg="17">
-        <pesition-pannel></pesition-pannel>
+        <pesition-pannel :position="positionData"></pesition-pannel>
       </a-col>
       <a-col :lg="7">
         <celve-pannel></celve-pannel>
@@ -51,7 +51,20 @@ export default {
       setTimeoutReset: null,
       lockReconnect: false,
       users:[],
+      userData:{
+        margin:{
+          walletBalance:null,
+          availableMargin:null,
+          currency:'XBt',
+          unrealisedPnl:null,
+          initMargin:null,
+          maintMargin:null,
+          marginBalance:null
+        }
+      },
+      positionData:[],
       currentUser:{},
+      toCancelUser:{},
       wsDatas: {
         trade: [],
         orders: {
@@ -59,7 +72,8 @@ export default {
           locked: false,
           sell: [],
           buy: []
-        }
+        },
+        wallet:[],
       },
       isFirstTime:true,
     }
@@ -84,6 +98,7 @@ export default {
       if (!this.websock) {
         console.log('建立websocket连接')
         const wsuri = 'wss://testnet.bitmex.com/realtimemd'
+        // const wsuri = 'wss://www.bitmex.com/realtimemd'
         this.websock = new WebSocket(wsuri)
         this.websock.onmessage = this.websocketonmessage
         this.websock.onopen = this.websocketonopen
@@ -173,40 +188,37 @@ export default {
       }
       const allData=JSON.parse(d)
       if(allData.length && allData.length>0 && allData[1]=='nomalInfos'){
-
-      }else {
-        console.log(allData)
-      }
-      if (!data.table) {
-        console.log(data)
-        return
-      }
-      switch (data.table) {
-        case 'trade':
-          if (data.action === 'partial') {
-            for (let i = 0; i < data.data.length; i++) {
-              // data.data[i].key = data.data.trdMatchID
-              const date = new Date(data.data[i].timestamp)
-              data.data[i].time = date.getHours() + ':' + date.getMinutes() + ':' + date.getSeconds()
+        const data=allData[3]
+        if (!data.table) {
+          console.log(data)
+          return
+        }
+        switch (data.table) {
+          case 'trade':
+            if (data.action === 'partial') {
+              for (let i = 0; i < data.data.length; i++) {
+                // data.data[i].key = data.data.trdMatchID
+                const date = new Date(data.data[i].timestamp)
+                data.data[i].time = date.getHours() + ':' + date.getMinutes() + ':' + date.getSeconds()
+              }
+              this.wsDatas.trade = data.data
+            } else if (data.action === 'insert') {
+              for (let i = 0; i < data.data.length; i++) {
+                // data.data[i].key = data.data.trdMatchID
+                const date = new Date(data.data[i].timestamp)
+                data.data[i].time = date.getHours() + ':' + date.getMinutes() + ':' + date.getSeconds()
+                this.wsDatas.trade.unshift(data.data[i])
+              }
+              if (this.wsDatas.trade.length > 60) this.wsDatas.trade = this.wsDatas.trade.slice(0, 59)
             }
-            this.wsDatas.trade = data.data
-          } else if (data.action === 'insert') {
-            for (let i = 0; i < data.data.length; i++) {
-              // data.data[i].key = data.data.trdMatchID
-              const date = new Date(data.data[i].timestamp)
-              data.data[i].time = date.getHours() + ':' + date.getMinutes() + ':' + date.getSeconds()
-              this.wsDatas.trade.unshift(data.data[i])
-            }
-            if (this.wsDatas.trade.length > 60) this.wsDatas.trade = this.wsDatas.trade.slice(0, 59)
-          }
-          // console.log(data.action + ' : ', data.data)
-          break
-        case 'orderBookL2_25':
-          // debugger
-          // this.wsDatas.orders.cache = this.wsDatas.orders.cache.concat(data)
-          // if (this.wsDatas.orders.locked) return
-          // this.wsDatas.orders.locked = true
-          // this.wsDatas.orders.cache.forEach(data => {
+            // console.log(data.action + ' : ', data.data)
+            break
+          case 'orderBookL2_25':
+            // debugger
+            // this.wsDatas.orders.cache = this.wsDatas.orders.cache.concat(data)
+            // if (this.wsDatas.orders.locked) return
+            // this.wsDatas.orders.locked = true
+            // this.wsDatas.orders.cache.forEach(data => {
             switch (data.action) {
               case 'partial':
                 const buyOrders = []
@@ -230,28 +242,7 @@ export default {
                     toUpdateData.size = data.data[i].size
                     // console.log('update:', toUpdateData.price)
                   } else {
-                    console.log('update: cannot find data! insert it!')
-                    // if (data.data[i].side === 'Sell') {
-                    //   for (let j = 0; j < this.wsDatas.orders.sell.length; j++) {
-                    //     if (j === this.wsDatas.orders.sell.length) this.wsDatas.orders.sell.push(data.data[i])
-                    //     // debugger
-                    //     if (this.wsDatas.orders.sell[j].price < data.data[i].price) {
-                    //       // debugger
-                    //       console.log('insert:', data.data[i])
-                    //       this.wsDatas.orders.sell.splice(j, 0, data.data[i])
-                    //       break
-                    //     }
-                    //   }
-                    // } else if (data.data[i].side === 'Buy') {
-                    //   for (let j = 0; j < this.wsDatas.orders.buy.length; j++) {
-                    //     if (j === this.wsDatas.orders.buy.length) this.wsDatas.orders.buy.push(data.data[i])
-                    //     if (this.wsDatas.orders.buy[j].price < data.data[i].price) {
-                    //       console.log('splice:', data.data[i])
-                    //       this.wsDatas.orders.buy.splice(j, 0, data.data[i])
-                    //       break
-                    //     }
-                    //   }
-                    // }
+                    console.log('update: cannot find data!please insert it!')
                   }
                 }
                 break
@@ -261,7 +252,7 @@ export default {
                     // debugger
                     const index = this.wsDatas.orders.sell.findIndex(item => item.id === data.data[i].id)
                     if (index === -1) {
-                    //   // debugger
+                      //   // debugger
                       this.wsDatas.orders.sell.push(data.data[i])
                       // console.log('insert:', data.data[i])
                       this.wsDatas.orders.sell.sort((a,b)=>{
@@ -272,7 +263,7 @@ export default {
                     // debugger
                     const index = this.wsDatas.orders.buy.findIndex(item => item.id === data.data[i].id)
                     if (index === -1) {
-                    //   // debugger
+                      //   // debugger
                       this.wsDatas.orders.buy.push(data.data[i])
                       // console.log('insert:', data.data[i])
                       this.wsDatas.orders.buy.sort((a,b)=>{
@@ -311,17 +302,53 @@ export default {
               default:
                 console.log(data.table + ' : ' + data.action + ' : ', data.data)
             }
-          // })
-          // this.wsDatas.orders.cache = []
-          // this.wsDatas.orders.locked = false
-          break
-        case 'position':
-          console.log(data.data)
-          break
-        case 'wallet':
-          console.log(data.data)
-          break
+            // })
+            // this.wsDatas.orders.cache = []
+            // this.wsDatas.orders.locked = false
+            break
+        }
+      }else if(allData.length && allData.length>0 && allData[1]==this.currentUser.email){
+        const data=allData[3]
+        if (!data.table) {
+          console.log(data)
+          return
+        }
+        switch (data.table) {
+          case 'position':
+            switch (data.action) {
+              case 'partial':
+                this.positionData=data.data
+                    break
+              case 'update':
+                for (let i=0; i<data.data.length;i++){
+                  let itemIndex=this.positionData.findIndex(position => position.symbol===data.data[i].symbol)
+                  this.positionData[itemIndex]={
+                    ...this.positionData[itemIndex],
+                    ...data.data[i]
+                  }
+                }
+                break
+              case 'insert':
+                for (let i=0; i<data.data.length;i++){
+                  this.positionData.push(data.data[i])
+                }
+            }
+            console.log('position',data.action , data.data)
+            break
+          case 'wallet':
+            // console.log('wallet',data.data)
+            break
+          case 'margin':
+            // console.log('margin',data.data)
+            this.userData.margin={
+              ...this.userData.margin,
+              ...data.data[0]}
+            break
+        }
+      }else{
+        console.log(allData)
       }
+
     },
 
     async getUsers (){
@@ -337,7 +364,9 @@ export default {
     changeCurrentUser(id){
       const user = this.users.find(user=>user.id == id)
       if(user){
+        this.toCancelUser=this.currentUser
         this.currentUser=user
+        this.cancelUserWs()
         this.createdUserWs()
       }
     },
@@ -347,7 +376,7 @@ export default {
         this.isFirstTime=false
         return
       }
-      const {userName,apiKey}=this.currentUser
+      const {userName,apiKey,email}=this.currentUser
       if(userName){
         const key=isTest ? apiKey[0].key : apiKey[1].key
         const apiSecret=isTest ? apiKey[0].apiSecret : apiKey[1].apiSecret
@@ -357,10 +386,27 @@ export default {
         const path='/realtime'
         const expires=Math.round(new Date().getTime() / 1000) + 10
         const signature=bitMexSignature(apiSecret,verb,path,expires)
-        const op = { 'op': 'authKeyExpires', 'args': [key,expires,signature] }
-        // this.websocketsend(JSON.stringify(op))
-        const op2 = { 'op': 'subscribe', 'args': ['position','wallet'] }
-        // this.websocketsend(JSON.stringify(op2))
+        const op = [1,email,userName]
+        this.websocketsend(JSON.stringify(op))
+        const op2 =[0,email,userName,{ 'op': 'authKeyExpires', 'args': [key,expires,signature] }]
+        this.websocketsend(JSON.stringify(op2))
+        const op3 =[0,email,userName,{ 'op': 'subscribe', 'args': ['position','wallet','margin'] }]
+        this.websocketsend(JSON.stringify(op3))
+      }
+    },
+
+    cancelUserWs(){
+      if (this.isFirstTime){
+        return
+      }
+      const {userName,email}=this.toCancelUser
+      if(userName){
+        // const verb='GET'
+        // const path='/realtime'
+        // const expires=Math.round(new Date().getTime() / 1000) + 10
+        // const signature=bitMexSignature(apiSecret,verb,path,expires)
+        const op = [2,email,userName]
+        this.websocketsend(JSON.stringify(op))
       }
     }
 
