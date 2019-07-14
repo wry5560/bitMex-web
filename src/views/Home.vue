@@ -83,7 +83,7 @@ export default {
     initWebSocket () { // 初始化weosocket
       if (!this.websock) {
         console.log('建立websocket连接')
-        const wsuri = 'wss://testnet.bitmex.com/realtime'
+        const wsuri = 'wss://testnet.bitmex.com/realtimemd'
         this.websock = new WebSocket(wsuri)
         this.websock.onmessage = this.websocketonmessage
         this.websock.onopen = this.websocketonopen
@@ -96,9 +96,13 @@ export default {
     websocketonopen () { // 连接建立之后执行send方法发送数据
       console.log('websocket已连接')
       // const op = { 'op': 'subscribe', 'args': ['orderBookL2_25:XBTUSD','trade:XBTUSD'] }
-      const op = [1, "hudsyg1q5dda4", "user_1"]
-      // this.websock.send(JSON.stringify(op))
+      const op = [1, "nomalInfos", "allUsers"]
       this.websock.send(JSON.stringify(op))
+      const op2 = [0, "nomalInfos", "allUsers",{ 'op': 'subscribe', 'args': ['orderBookL2_25:XBTUSD','trade:XBTUSD'] }]
+      this.websock.send(JSON.stringify(op2))
+      // this.websock.send(op)
+
+      // console.log(typeof (op) ,op)
       this.setIntervalWs()
       if(this.currentUser.userName) this.createdUserWs()
       // let actions = { 'test': '12345' }
@@ -167,7 +171,12 @@ export default {
         console.log('pong')
         return
       }
-      const data = JSON.parse(d)
+      const allData=JSON.parse(d)
+      if(allData.length && allData.length>0 && allData[1]=='nomalInfos'){
+
+      }else {
+        console.log(allData)
+      }
       if (!data.table) {
         console.log(data)
         return
@@ -349,9 +358,9 @@ export default {
         const expires=Math.round(new Date().getTime() / 1000) + 10
         const signature=bitMexSignature(apiSecret,verb,path,expires)
         const op = { 'op': 'authKeyExpires', 'args': [key,expires,signature] }
-        this.websocketsend(JSON.stringify(op))
+        // this.websocketsend(JSON.stringify(op))
         const op2 = { 'op': 'subscribe', 'args': ['position','wallet'] }
-        this.websocketsend(JSON.stringify(op2))
+        // this.websocketsend(JSON.stringify(op2))
       }
     }
 
