@@ -11,8 +11,10 @@
       </a-row>
       <div style="height: 170px; overflow: auto">
         <a-row v-for="(item,index) in sellOrder" :key="item.id" class="sell-trade" :class="rowClass(item,index)">
+          <div v-if="index > sellOrder.length - 9">
             <a-col :lg="11"><div style="text-align: right">{{item.size}}</div></a-col>
             <a-col :lg="13"><div style="text-align: right;margin-right: 20px">{{item.price}}</div></a-col>
+          </div>
         </a-row>
       </div>
       <div style="font-size: 18px;line-height: 38px;border-top: 1px solid lightgray;border-bottom: 1px solid lightgray;" >
@@ -25,8 +27,10 @@
       </div>
       <div style="height: 170px; overflow: auto">
         <a-row v-for="(item,index) in buyOrder" :key="item.id" class="buy-trade" :class="rowClass(item,index)">
+          <div v-if="index < 8">
             <a-col :lg="11"><div style="text-align: right">{{item.size}}</div></a-col>
             <a-col :lg="13"><div style="text-align: right;margin-right: 20px">{{item.price}}</div></a-col>
+          </div>
         </a-row>
       </div>
 <!--      <div >-->

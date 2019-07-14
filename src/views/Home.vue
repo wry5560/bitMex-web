@@ -2,7 +2,7 @@
   <div class="home">
     <a-row :gutter="16" style="margin-bottom: 16px">
       <a-col :lg="10">
-        <user-pannel></user-pannel>
+        <user-pannel :users="users" @select="changeCurrentUser"></user-pannel>
       </a-col>
       <a-col :lg="7">
         <order-book-pannel :price="orderBookProps.price" :side="orderBookProps.side" :sellOrder="wsDatas.orders.sell" :buyOrder="wsDatas.orders.buy"/>
@@ -29,7 +29,12 @@ import OrderBookPannel from '@/components/OrderBookPannel.vue'
 import TradePannel from '@/components/TradePannel.vue'
 import CelvePannel from '@/components/CelvePannel.vue'
 import PesitionPannel from '@/components/PesitionPannel.vue'
+import bitMexSignature from  '@/lib/bitmex_signature'
 
+import {reqUsers}  from '@/api'
+
+const isTest=true
+// const isTest=false
 export default {
   name: 'home',
   components: {
@@ -45,6 +50,8 @@ export default {
       setIntervalPingPong: null,
       setTimeoutReset: null,
       lockReconnect: false,
+      users:[],
+      currentUser:{},
       wsDatas: {
         trade: [],
         orders: {
@@ -53,7 +60,8 @@ export default {
           sell: [],
           buy: []
         }
-      }
+      },
+      isFirstTime:true,
     }
   },
   computed: {
@@ -65,6 +73,8 @@ export default {
   },
   created () {
     this.initWebSocket()
+    this.getUsers()
+
   },
   destroyed () {
     this.websock.close() // 离开路由之后断开websocket连接
@@ -73,7 +83,7 @@ export default {
     initWebSocket () { // 初始化weosocket
       if (!this.websock) {
         console.log('建立websocket连接')
-        const wsuri = 'wss://www.bitmex.com/realtime'
+        const wsuri = 'wss://testnet.bitmex.com/realtime'
         this.websock = new WebSocket(wsuri)
         this.websock.onmessage = this.websocketonmessage
         this.websock.onopen = this.websocketonopen
@@ -85,12 +95,12 @@ export default {
     },
     websocketonopen () { // 连接建立之后执行send方法发送数据
       console.log('websocket已连接')
-      const op = { 'op': 'subscribe',
-        'args': ['orderBookL2_25:XBTUSD'
-        // 'trade:XBTUSD'
-        ] }
+      // const op = { 'op': 'subscribe', 'args': ['orderBookL2_25:XBTUSD','trade:XBTUSD'] }
+      const op = [1, "hudsyg1q5dda4", "user_1"]
+      // this.websock.send(JSON.stringify(op))
       this.websock.send(JSON.stringify(op))
       this.setIntervalWs()
+      if(this.currentUser.userName) this.createdUserWs()
       // let actions = { 'test': '12345' }
       // this.websocketsend(JSON.stringify(actions))
     },
@@ -111,6 +121,7 @@ export default {
       // console.log(e.data)
     },
     websocketsend (Data) { // 数据发送
+      // debugger
       if (this.websock !== null && this.websock.readyState === 3) {
         clearInterval(this.setIntervalPingPong)
         this.websock.close()
@@ -123,7 +134,7 @@ export default {
           this.websocketsend(Data)
         }, 3000)
       }
-      this.websock.send(Data)
+      // this.websock.send(Data)
     },
     websocketclose (e) { // 关闭
       console.log('断开连接', e)
@@ -137,8 +148,8 @@ export default {
           _this.websock.close()
           _this.websock = null
           _this.reconnect()
-        }, 5000)
-      }, 5000)
+        }, 3000)
+      }, 3000)
     },
     reconnect () {
       const _this = this
@@ -183,10 +194,10 @@ export default {
           break
         case 'orderBookL2_25':
           // debugger
-          this.wsDatas.orders.cache = this.wsDatas.orders.cache.concat(data)
-          if (this.wsDatas.orders.locked) return
-          this.wsDatas.orders.locked = true
-          this.wsDatas.orders.cache.forEach(data => {
+          // this.wsDatas.orders.cache = this.wsDatas.orders.cache.concat(data)
+          // if (this.wsDatas.orders.locked) return
+          // this.wsDatas.orders.locked = true
+          // this.wsDatas.orders.cache.forEach(data => {
             switch (data.action) {
               case 'partial':
                 const buyOrders = []
@@ -208,7 +219,7 @@ export default {
                   }
                   if (toUpdateData) {
                     toUpdateData.size = data.data[i].size
-                    console.log('update:', toUpdateData.price)
+                    // console.log('update:', toUpdateData.price)
                   } else {
                     console.log('update: cannot find data! insert it!')
                     // if (data.data[i].side === 'Sell') {
@@ -238,39 +249,26 @@ export default {
               case 'insert':
                 for (let i = 0; i < data.data.length; i++) {
                   if (data.data[i].side === 'Sell') {
-                    debugger
+                    // debugger
                     const index = this.wsDatas.orders.sell.findIndex(item => item.id === data.data[i].id)
                     if (index === -1) {
-                      debugger
-                      for (let j = 0; j < this.wsDatas.orders.sell.length; j++) {
-                        debugger
-                        if (j === this.wsDatas.orders.sell.length) {
-                          this.wsDatas.orders.sell.push(data.data[i])
-                          break
-                        }
-                        if (this.wsDatas.orders.sell[j].price > data.data[i].price) {
-                          // debugger
-                          console.log('insert:', data.data[i])
-                          this.wsDatas.orders.sell.splice(j, 0, data.data[i])
-                        }
-                      }
+                    //   // debugger
+                      this.wsDatas.orders.sell.push(data.data[i])
+                      // console.log('insert:', data.data[i])
+                      this.wsDatas.orders.sell.sort((a,b)=>{
+                        return b.price - a.price
+                      })
                     }
                   } else if (data.data[i].side === 'Buy') {
-                    debugger
+                    // debugger
                     const index = this.wsDatas.orders.buy.findIndex(item => item.id === data.data[i].id)
                     if (index === -1) {
-                      debugger
-                      for (let j = 0; j < this.wsDatas.orders.buy.length; j++) {
-                        debugger
-                        if (j === this.wsDatas.orders.sell.length) {
-                          this.wsDatas.orders.sell.push(data.data[i])
-                          break
-                        }
-                        if (this.wsDatas.orders.buy[j].price < data.data[i].price) {
-                          console.log('insert:', data.data[i])
-                          this.wsDatas.orders.buy.splice(j, 0, data.data[i])
-                        }
-                      }
+                    //   // debugger
+                      this.wsDatas.orders.buy.push(data.data[i])
+                      // console.log('insert:', data.data[i])
+                      this.wsDatas.orders.buy.sort((a,b)=>{
+                        return b.price - a.price
+                      })
                     }
                   }
                 }
@@ -283,7 +281,7 @@ export default {
                     toDelDataIndex = this.wsDatas.orders.sell.findIndex(item => item.id === data.data[i].id)
                     if (toDelDataIndex > -1) {
                       this.wsDatas.orders.sell.splice(toDelDataIndex, 1)
-                      console.log('delete:', data.data[i].id)
+                      // console.log('delete:', data.data[i].id)
                     } else {
                       console.log('delete: cannot find data!')
                     }
@@ -292,7 +290,7 @@ export default {
                     toDelDataIndex = this.wsDatas.orders.buy.findIndex(item => item.id === data.data[i].id)
                     if (toDelDataIndex > -1) {
                       this.wsDatas.orders.buy.splice(toDelDataIndex, 1)
-                      console.log('delete:', data.data[i].id)
+                      // console.log('delete:', data.data[i].id)
                     } else {
                       console.log('delete: cannot find data!')
                     }
@@ -304,12 +302,59 @@ export default {
               default:
                 console.log(data.table + ' : ' + data.action + ' : ', data.data)
             }
-          })
-          this.wsDatas.orders.cache = []
-          this.wsDatas.orders.locked = false
+          // })
+          // this.wsDatas.orders.cache = []
+          // this.wsDatas.orders.locked = false
+          break
+        case 'position':
+          console.log(data.data)
+          break
+        case 'wallet':
+          console.log(data.data)
           break
       }
+    },
+
+    async getUsers (){
+      try{
+        console.log('get users!')
+        this.users=await reqUsers()
+      }catch(err){
+        console.log(err)
+      }
+
+    },
+
+    changeCurrentUser(id){
+      const user = this.users.find(user=>user.id == id)
+      if(user){
+        this.currentUser=user
+        this.createdUserWs()
+      }
+    },
+
+    createdUserWs(){
+      if (this.isFirstTime){
+        this.isFirstTime=false
+        return
+      }
+      const {userName,apiKey}=this.currentUser
+      if(userName){
+        const key=isTest ? apiKey[0].key : apiKey[1].key
+        const apiSecret=isTest ? apiKey[0].apiSecret : apiKey[1].apiSecret
+        console.log(key)
+        console.log(apiSecret)
+        const verb='GET'
+        const path='/realtime'
+        const expires=Math.round(new Date().getTime() / 1000) + 10
+        const signature=bitMexSignature(apiSecret,verb,path,expires)
+        const op = { 'op': 'authKeyExpires', 'args': [key,expires,signature] }
+        this.websocketsend(JSON.stringify(op))
+        const op2 = { 'op': 'subscribe', 'args': ['position','wallet'] }
+        this.websocketsend(JSON.stringify(op2))
+      }
     }
+
   }
 }
 </script>
