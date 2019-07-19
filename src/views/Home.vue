@@ -16,7 +16,7 @@
         <pesition-pannel :position="positionData" :order="orderData" :orderHistory="orderHistory" :execution="executionData" @closePosition="pcConfirm" @cancelPosition="cancelConfirm"></pesition-pannel>
       </a-col>
       <a-col :lg="7">
-        <celve-pannel></celve-pannel>
+        <celve-pannel @insert="insertCelve" @stop="stopCelve" :celves="celves" :user="currentUser"></celve-pannel>
       </a-col>
     </a-row>
   </div>
@@ -29,13 +29,13 @@ import OrderBookPannel from '@/components/OrderBookPannel.vue'
 import TradePannel from '@/components/TradePannel.vue'
 import CelvePannel from '@/components/CelvePannel.vue'
 import PesitionPannel from '@/components/PesitionPannel.vue'
-import bitMexSignature from  '@/lib/bitmex_signature'
+import bitMexSignature from '@/lib/bitmex_signature'
 import moment from 'moment'
 import 'moment/locale/zh-cn'
 
-import {reqUsers,reqTradeHistory,reqWalletHistory,reqOrders,postOrders}  from '@/api'
+import { reqUsers, reqTradeHistory, reqWalletHistory, reqOrders, postOrders, postLevelPriceCelve, getLevelPriceCelve } from '@/api'
 
-const isTest=true
+const isTest = true
 // const isTest=false
 export default {
   name: 'home',
@@ -52,26 +52,27 @@ export default {
       setIntervalPingPong: null,
       setTimeoutReset: null,
       lockReconnect: false,
-      users:[],
-      userData:{
-        margin:{
-          walletBalance:null,
-          availableMargin:null,
-          currency:'XBt',
-          unrealisedPnl:null,
-          initMargin:null,
-          maintMargin:null,
-          marginBalance:null
+      users: [],
+      celves: [],
+      userData: {
+        margin: {
+          walletBalance: null,
+          availableMargin: null,
+          currency: 'XBt',
+          unrealisedPnl: null,
+          initMargin: null,
+          maintMargin: null,
+          marginBalance: null
         }
       },
-      positionData:[],
-      orderData:[],
-      orderHistory:[],
-      tradeHistory:[],
-      walletHistory:[],
-      executionData:[],
-      currentUser:{},
-      toCancelUser:{},
+      positionData: [],
+      orderData: [],
+      orderHistory: [],
+      tradeHistory: [],
+      walletHistory: [],
+      executionData: [],
+      currentUser: {},
+      toCancelUser: {},
       wsDatas: {
         trade: [],
         orders: {
@@ -80,9 +81,9 @@ export default {
           sell: [],
           buy: []
         },
-        wallet:[],
+        wallet: []
       },
-      isFirstTime:true,
+      isFirstTime: true
     }
   },
   computed: {
@@ -95,7 +96,7 @@ export default {
   created () {
     this.initWebSocket()
     this.getUsers()
-
+    this.getCelves('running')
   },
   destroyed () {
     this.websock.close() // 离开路由之后断开websocket连接
@@ -119,15 +120,15 @@ export default {
     websocketonopen () { // 连接建立之后执行send方法发送数据
       console.log('websocket已连接')
       // const op = { 'op': 'subscribe', 'args': ['orderBookL2_25:XBTUSD','trade:XBTUSD'] }
-      const op = [1, "nomalInfos", "allUsers"]
+      const op = [1, 'nomalInfos', 'allUsers']
       this.websock.send(JSON.stringify(op))
-      const op2 = [0, "nomalInfos", "allUsers",{ 'op': 'subscribe', 'args': ['orderBookL2_25:XBTUSD','trade:XBTUSD'] }]
+      const op2 = [0, 'nomalInfos', 'allUsers', { 'op': 'subscribe', 'args': ['orderBookL2_25:XBTUSD', 'trade:XBTUSD'] }]
       this.websock.send(JSON.stringify(op2))
       // this.websock.send(op)
 
       // console.log(typeof (op) ,op)
       this.setIntervalWs()
-      if(this.currentUser.userName) this.createdUserWs()
+      if (this.currentUser.userName) this.createdUserWs()
       // let actions = { 'test': '12345' }
       // this.websocketsend(JSON.stringify(actions))
     },
@@ -195,10 +196,10 @@ export default {
         console.log('pong')
         return
       }
-      const allData=JSON.parse(d)
-      if(allData.length && allData.length>0 && allData[1]=='nomalInfos'){
-        const data=allData[3]
-        if (typeof (data.table)===undefined) {
+      const allData = JSON.parse(d)
+      if (allData.length && allData.length > 0 && allData[1] == 'nomalInfos') {
+        const data = allData[3]
+        if (typeof (data.table) === undefined) {
           console.log(data)
           return
         }
@@ -264,7 +265,7 @@ export default {
                       //   // debugger
                       this.wsDatas.orders.sell.push(data.data[i])
                       // console.log('insert:', data.data[i])
-                      this.wsDatas.orders.sell.sort((a,b)=>{
+                      this.wsDatas.orders.sell.sort((a, b) => {
                         return b.price - a.price
                       })
                     }
@@ -275,7 +276,7 @@ export default {
                       //   // debugger
                       this.wsDatas.orders.buy.push(data.data[i])
                       // console.log('insert:', data.data[i])
-                      this.wsDatas.orders.buy.sort((a,b)=>{
+                      this.wsDatas.orders.buy.sort((a, b) => {
                         return b.price - a.price
                       })
                     }
@@ -316,9 +317,9 @@ export default {
             // this.wsDatas.orders.locked = false
             break
         }
-      }else if(allData.length && allData.length>0 && allData[1]==this.currentUser.email){
-        const data=allData[3]
-        if (typeof (data.table)===undefined) {
+      } else if (allData.length && allData.length > 0 && allData[1] == this.currentUser.email) {
+        const data = allData[3]
+        if (typeof (data.table) === undefined) {
           console.log(data)
           return
         }
@@ -327,20 +328,20 @@ export default {
           case 'position':
             switch (data.action) {
               case 'partial':
-                this.positionData=data.data
-                    break
+                this.positionData = data.data
+                break
               case 'update':
-                for (let i=0; i<data.data.length;i++){
-                  let itemIndex=this.positionData.findIndex(position => position.symbol===data.data[i].symbol)
-                  this.positionData[itemIndex]={
+                for (let i = 0; i < data.data.length; i++) {
+                  let itemIndex = this.positionData.findIndex(position => position.symbol === data.data[i].symbol)
+                  this.positionData[itemIndex] = {
                     ...this.positionData[itemIndex],
                     ...data.data[i]
                   }
-                  this.positionData=[...this.positionData]
+                  this.positionData = [...this.positionData]
                 }
                 break
               case 'insert':
-                for (let i=0; i<data.data.length;i++){
+                for (let i = 0; i < data.data.length; i++) {
                   this.positionData.push(data.data[i])
                 }
             }
@@ -349,42 +350,42 @@ export default {
           case 'transact':
             switch (data.action) {
               case 'insert':
-                for (let i=0; i<data.data.length;i++){
+                for (let i = 0; i < data.data.length; i++) {
                   this.walletHistory.unshift(data.data[i])
                   // this.orderHistory.unshift(data.data[i])
                 }
             }
-            console.log('transact',data.action,data.data)
+            console.log('transact', data.action, data.data)
             break
           case 'margin':
             // console.log('margin',data.data)
-            this.userData.margin={
+            this.userData.margin = {
               ...this.userData.margin,
-              ...data.data[0]}
+              ...data.data[0] }
             break
           case 'order':
             switch (data.action) {
               case 'partial':
-                this.orderData=data.data
+                this.orderData = data.data
                 break
               case 'update':
-                for (let i=0; i<data.data.length;i++){
-                  let itemIndex=this.orderData.findIndex(order => order.orderID===data.data[i].orderID)
-                  this.orderData[itemIndex]={
+                for (let i = 0; i < data.data.length; i++) {
+                  let itemIndex = this.orderData.findIndex(order => order.orderID === data.data[i].orderID)
+                  this.orderData[itemIndex] = {
                     ...this.orderData[itemIndex],
                     ...data.data[i]
                   }
-                  let itemIndex2=this.orderHistory.findIndex(order => order.orderID===data.data[i].orderID)
-                  this.orderHistory[itemIndex2]={
+                  let itemIndex2 = this.orderHistory.findIndex(order => order.orderID === data.data[i].orderID)
+                  this.orderHistory[itemIndex2] = {
                     ...this.orderHistory[itemIndex2],
                     ...data.data[i]
                   }
                 }
-                this.orderData=[...this.orderData]
-                this.orderHistory=[...this.orderHistory]
+                this.orderData = [...this.orderData]
+                this.orderHistory = [...this.orderHistory]
                 break
               case 'insert':
-                for (let i=0; i<data.data.length;i++){
+                for (let i = 0; i < data.data.length; i++) {
                   this.orderData.unshift(data.data[i])
                   this.orderHistory.unshift(data.data[i])
                 }
@@ -406,71 +407,79 @@ export default {
               //   }
               //   break
               case 'insert':
-                for (let i=0; i<data.data.length;i++){
-                  if(data.data[i].lastPx){
+                for (let i = 0; i < data.data.length; i++) {
+                  if (data.data[i].lastPx) {
                     this.executionData.unshift(data.data[i])
                   }
                 }
             }
-            console.log('execution',data.action , data.data)
+            console.log('execution', data.action, data.data)
             break
         }
-      }else{
+      } else {
         console.log(allData)
       }
-
     },
 
-    async getUsers (){
-      try{
+    async getUsers () {
+      try {
         console.log('get users!')
-        this.users=await reqUsers()
-      }catch(err){
+        this.users = await reqUsers()
+      } catch (err) {
         console.log(err)
       }
     },
-    async getOrders (){
-      try{
+    async getOrders () {
+      try {
         console.log('get orders!')
-        const {userName,email}=this.currentUser
-        this.orderHistory=await reqOrders(userName)
-        if(!this.orderHistory)this.orderHistory=[]
-        const op =[0,email,userName,{ 'op': 'subscribe', 'args': ['order'] }]
+        const { userName, email } = this.currentUser
+        this.orderHistory = await reqOrders(userName)
+        if (!this.orderHistory) this.orderHistory = []
+        const op = [0, email, userName, { 'op': 'subscribe', 'args': ['order'] }]
         this.websocketsend(JSON.stringify(op))
-      }catch(err){
+      } catch (err) {
         console.log(err)
       }
     },
-    async getWalletHistory (){
-      try{
+    async getWalletHistory () {
+      try {
         console.log('get wallet history!')
-        const {userName,email}=this.currentUser
-        this.walletHistory=await reqWalletHistory(userName)
-        if(!this.walletHistory)this.walletHistory=[]
-        const op =[0,email,userName,{ 'op': 'subscribe', 'args': ['transact'] }]
+        const { userName, email } = this.currentUser
+        this.walletHistory = await reqWalletHistory(userName)
+        if (!this.walletHistory) this.walletHistory = []
+        const op = [0, email, userName, { 'op': 'subscribe', 'args': ['transact'] }]
         this.websocketsend(JSON.stringify(op))
-      }catch(err){
+      } catch (err) {
         console.log(err)
       }
     },
-    async getTradeHistory (){
-      try{
+    async getTradeHistory () {
+      try {
         console.log('get Trade History!')
-        const {userName,email}=this.currentUser
-        this.executionData=await reqTradeHistory(userName)
-        if(!this.executionData)this.executionData=[]
-        const op =[0,email,userName,{ 'op': 'subscribe', 'args': ['execution'] }]
+        const { userName, email } = this.currentUser
+        this.executionData = await reqTradeHistory(userName)
+        if (!this.executionData) this.executionData = []
+        const op = [0, email, userName, { 'op': 'subscribe', 'args': ['execution'] }]
         this.websocketsend(JSON.stringify(op))
-      }catch(err){
+      } catch (err) {
         console.log(err)
       }
     },
-
-    changeCurrentUser(id){
-      const user = this.users.find(user=>user.id == id)
-      if(user){
-        this.toCancelUser=this.currentUser
-        this.currentUser=user
+    async getCelves (type) {
+      try {
+        const res = await getLevelPriceCelve({ type: type })
+        if (res.success) {
+          this.celves = res.data
+        }
+      } catch (e) {
+        console.log(e)
+      }
+    },
+    changeCurrentUser (id) {
+      const user = this.users.find(user => user.id == id)
+      if (user) {
+        this.toCancelUser = this.currentUser
+        this.currentUser = user
         this.cancelUserWs()
         this.getOrders()
         this.getWalletHistory()
@@ -479,66 +488,90 @@ export default {
       }
     },
 
-    createdUserWs(){
-      if (this.isFirstTime){
-        this.isFirstTime=false
+    createdUserWs () {
+      if (this.isFirstTime) {
+        this.isFirstTime = false
         return
       }
-      const {userName,apiKey,email}=this.currentUser
-      if(userName){
-        const key=isTest ? apiKey[0].key : apiKey[1].key
-        const apiSecret=isTest ? apiKey[0].apiSecret : apiKey[1].apiSecret
+      const { userName, apiKey, email } = this.currentUser
+      if (userName) {
+        const key = isTest ? apiKey[0].key : apiKey[1].key
+        const apiSecret = isTest ? apiKey[0].apiSecret : apiKey[1].apiSecret
         // console.log(key)
         // console.log(apiSecret)
-        const verb='GET'
-        const path='/realtime'
-        const expires=Math.round(new Date().getTime() / 1000) + 10
-        const signature=bitMexSignature(apiSecret,verb,path,expires)
-        const op = [1,email,userName]
+        const verb = 'GET'
+        const path = '/realtime'
+        const expires = Math.round(new Date().getTime() / 1000) + 10
+        const signature = bitMexSignature(apiSecret, verb, path, expires)
+        const op = [1, email, userName]
         this.websocketsend(JSON.stringify(op))
-        const op2 =[0,email,userName,{ 'op': 'authKeyExpires', 'args': [key,expires,signature] }]
+        const op2 = [0, email, userName, { 'op': 'authKeyExpires', 'args': [key, expires, signature] }]
         this.websocketsend(JSON.stringify(op2))
-        const op3 =[0,email,userName,{ 'op': 'subscribe', 'args': ['position','margin'] }]
+        const op3 = [0, email, userName, { 'op': 'subscribe', 'args': ['position', 'margin'] }]
         this.websocketsend(JSON.stringify(op3))
       }
     },
 
-    cancelUserWs(){
-      if (this.isFirstTime){
+    cancelUserWs () {
+      if (this.isFirstTime) {
         return
       }
-      const {userName,email}=this.toCancelUser
-      if(userName){
+      const { userName, email } = this.toCancelUser
+      if (userName) {
         // const verb='GET'
         // const path='/realtime'
         // const expires=Math.round(new Date().getTime() / 1000) + 10
         // const signature=bitMexSignature(apiSecret,verb,path,expires)
-        const op = [2,email,userName]
+        const op = [2, email, userName]
         this.websocketsend(JSON.stringify(op))
       }
     },
 
-    pcConfirm(datas){
-      const symbol=datas[0]
-      const price=datas[1]
-      const params={
-        username:this.currentUser.userName,
-        postType:'closePosition',
-        symbol:symbol,
-        price:price
+    pcConfirm (datas) {
+      const symbol = datas[0]
+      const price = datas[1]
+      const params = {
+        username: this.currentUser.userName,
+        postType: 'closePosition',
+        symbol: symbol,
+        price: price
       }
       postOrders(params)
       // console.log(symbol,price)
     },
-    cancelConfirm(orderID){
-      const params={
-        username:this.currentUser.userName,
-        postType:orderID==='all'?'delete all':'delete',
-        orderID:orderID==='all'?'':orderID,
+    cancelConfirm (orderID) {
+      const params = {
+        username: this.currentUser.userName,
+        postType: orderID === 'all' ? 'delete all' : 'delete',
+        orderID: orderID === 'all' ? '' : orderID
       }
       postOrders(params)
+    },
+    async insertCelve (values) {
+      values.username = this.currentUser.userName
+      if (values.type === 'Market')values.price = this.wsDatas.trade[0].price
+      values.nextPrice = values.side === 'Buy' ? values.startPrice - values.levelPrice : values.startPrice + values.levelPrice
+      values.postType = 'insert'
+      try {
+        await postLevelPriceCelve(values)
+        this.getCelves('running')
+      } catch (e) {
+        console.log(e)
+      }
+      // console.log(JSON.stringify(values))
+    },
+    async stopCelve (id) {
+      const params = {
+        postType: 'stop',
+        _id: id
+      }
+      try {
+        await postLevelPriceCelve(params)
+        this.getCelves('running')
+      } catch (e) {
+        console.log(e)
+      }
     }
-
   }
 }
 </script>
