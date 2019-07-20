@@ -16,7 +16,7 @@
         <pesition-pannel :position="positionData" :order="orderData" :orderHistory="orderHistory" :execution="executionData" @closePosition="pcConfirm" @cancelPosition="cancelConfirm"></pesition-pannel>
       </a-col>
       <a-col :lg="7">
-        <celve-pannel @insert="insertCelve" @stop="stopCelve" :celves="celves" :user="currentUser"></celve-pannel>
+        <celve-pannel @insert="insertCelve" @stop="stopCelve" @update="updateCelve" :celves="celves" :user="currentUser"></celve-pannel>
       </a-col>
     </a-row>
   </div>
@@ -96,7 +96,8 @@ export default {
   created () {
     this.initWebSocket()
     this.getUsers()
-    this.getCelves('running')
+    const _this = this
+    setInterval(()=>{_this.getCelves('running')},2000)
   },
   destroyed () {
     this.websock.close() // 离开路由之后断开websocket连接
@@ -560,13 +561,25 @@ export default {
       }
       // console.log(JSON.stringify(values))
     },
-    async stopCelve (id) {
-      const params = {
-        postType: 'stop',
-        _id: id
+    async updateCelve (values) {
+      if(values.currentLevel === 1){
+        values.nextPrice = values.side === 'Buy' ? values.startPrice - values.levelPrice : values.startPrice + values.levelPrice
+      }else{
+        values.nextPrice = values.side === 'Buy' ? values.prePrice - values.levelPrice : values.prePrice + values.levelPrice
       }
+      values.postType = 'update'
       try {
-        await postLevelPriceCelve(params)
+        await postLevelPriceCelve(values)
+        this.getCelves('running')
+      } catch (e) {
+        console.log(e)
+      }
+      // console.log(JSON.stringify(values))
+    },
+    async stopCelve (data) {
+      data.postType = 'stop'
+      try {
+        await postLevelPriceCelve(data)
         this.getCelves('running')
       } catch (e) {
         console.log(e)

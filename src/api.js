@@ -1,6 +1,6 @@
 import { axios } from './lib/request'
 
-const baseUrl = 'http://localhost:3000'
+const baseUrl = 'http://localhost:3001'
 
 export const reqUsers = async function (userName) {
   const options = {
