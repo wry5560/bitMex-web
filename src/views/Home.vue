@@ -550,8 +550,10 @@ export default {
     },
     async insertCelve (values) {
       values.username = this.currentUser.userName
-      if (values.type === 'Market')values.price = this.wsDatas.trade[0].price
-      values.nextPrice = values.side === 'Buy' ? values.startPrice - values.levelPrice : values.startPrice + values.levelPrice
+      if (values.type === 'Market')values.startPrice = this.wsDatas.trade[0].price
+      values.stopPrice=999999
+      values.prePrice=values.startPrice
+      values.nextPrice = values.startPrice
       values.postType = 'insert'
       try {
         await postLevelPriceCelve(values)
@@ -562,12 +564,12 @@ export default {
       // console.log(JSON.stringify(values))
     },
     async updateCelve (values) {
-      if(values.currentLevel === 1){
-        values.nextPrice = values.side === 'Buy' ? values.startPrice - values.levelPrice : values.startPrice + values.levelPrice
-      }else{
+      if(values.currentLevel !== 0){
+        values.stopPrice= values.side === 'Buy' ? values.prePrice + values.levelPrice : values.prePrice - values.levelPrice
         values.nextPrice = values.side === 'Buy' ? values.prePrice - values.levelPrice : values.prePrice + values.levelPrice
       }
       values.postType = 'update'
+      values.actions.unshift('策略更新...' + ' ' + moment().format('YYYY-MM-DD HH:mm:ss'))
       try {
         await postLevelPriceCelve(values)
         this.getCelves('running')
