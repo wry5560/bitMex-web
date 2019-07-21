@@ -22,7 +22,8 @@
   import 'moment/locale/zh-cn'
   import { reqUsers,  reqOrders, postOrders, postLevelPriceCelve, getLevelPriceCelve } from '@/api'
 
-  const isTest = true
+  import {settings} from '../../config/dev-setting'
+  const {isTest} = settings
 
     export default {
       name: "Serve",
@@ -188,8 +189,6 @@
         },
 
        levelPriceCelve(currentPrice){
-
-
           this.celves.forEach(async item=>{
             if(item.side === 'Buy'){
               if(currentPrice <= item.nextPrice + item.offset && item.nextLevel <= item.level){

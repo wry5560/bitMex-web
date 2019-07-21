@@ -1,6 +1,8 @@
 import { axios } from './lib/request'
+import {settings} from '../config/dev-setting'
+const {isTest} = settings
 
-const baseUrl = 'http://localhost:3001'
+const baseUrl = isTest ? 'http://localhost:3001' :  'http://47.245.26.247:3001'
 // const baseUrl = 'http://47.245.26.247:3001'
 
 export const reqUsers = async function (userName) {
