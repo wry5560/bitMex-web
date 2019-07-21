@@ -1,6 +1,7 @@
 import { axios } from './lib/request'
 
 const baseUrl = 'http://localhost:3001'
+// const baseUrl = 'http://47.245.26.247:3001'
 
 export const reqUsers = async function (userName) {
   const options = {

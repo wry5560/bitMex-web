@@ -69,7 +69,7 @@
         initWebSocket () { // 初始化weosocket
           if (!this.websock) {
             console.log('建立websocket连接')
-            const wsuri =isTest ?  'wss://testnet.bitmex.com/realtime' : 'wss://www.bitmex.com/realtimemd'
+            const wsuri =isTest ?  'wss://testnet.bitmex.com/realtime' : 'wss://www.bitmex.com/realtime'
             // const wsuri = 'wss://www.bitmex.com/realtimemd'
             this.websock = new WebSocket(wsuri)
             this.websock.onmessage = this.websocketonmessage
