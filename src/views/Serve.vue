@@ -32,6 +32,7 @@
             setIntervalPingPong: null,
             setTimeoutReset: null,
             lockReconnect: false,
+            lockCelve:false,
             orderLocks:{},
             celves: [],
             currentPrice:null,
@@ -58,7 +59,7 @@
         this.initWebSocket()
         this.getUsers()
         const _this = this
-        setInterval(()=>{_this.getCelves('running')},1000)
+        setInterval(()=>{_this.getCelves('running')},2000)
       },
       destroyed () {
         this.websock.close() // 离开路由之后断开websocket连接
@@ -68,7 +69,7 @@
         initWebSocket () { // 初始化weosocket
           if (!this.websock) {
             console.log('建立websocket连接')
-            const wsuri = 'wss://testnet.bitmex.com/realtime'
+            const wsuri =isTest ?  'wss://testnet.bitmex.com/realtime' : 'wss://www.bitmex.com/realtimemd'
             // const wsuri = 'wss://www.bitmex.com/realtimemd'
             this.websock = new WebSocket(wsuri)
             this.websock.onmessage = this.websocketonmessage
@@ -187,9 +188,17 @@
         },
 
        levelPriceCelve(currentPrice){
+
+
           this.celves.forEach(async item=>{
             if(item.side === 'Buy'){
               if(currentPrice <= item.nextPrice + item.offset && item.nextLevel <= item.level){
+                if(this.lockCelve){
+                  console.log('celve locked!')
+                  return
+                }
+                console.time()
+                this.lockCelve = true
                 console.log('触发开单!当前价格：'+currentPrice +'... '+'nextPrice:'+ item.nextPrice+'... '+'nextLevel:'+ item.nextLevel)
                 const res = await this.createOrder(item)
                 if(res === 'wait'){
@@ -212,7 +221,10 @@
                   try {
                     item.postType = 'update'
                     await postLevelPriceCelve(item)
+                    await this.getCelves('running')
                     this.orderLocks[item._id] = false
+                    this.lockCelve = false
+                    console.timeEnd()
                   } catch (e) {
                     this.orderLocks[item._id] = false
                     console.log(e)
@@ -221,8 +233,14 @@
                 // debugger
 
               }
-              if(currentPrice >= item.prePrice - item.offset && item.currentLevel > 1){
-                console.log('触发平仓!当前价格：'+currentPrice +'... '+'prePrice:'+ item.prePrice+'... '+'currentLevel:'+ item.currentLevel)
+              if(currentPrice >= item.stopPrice - item.offset && item.currentLevel > 1){
+                if(this.lockCelve){
+                  console.log('celve locked!')
+                  return
+                }
+                console.time()
+                this.lockCelve = true
+                console.log('触发平仓!当前价格：'+currentPrice +'... '+'stopPrice:'+ item.stopPrice+'... '+'currentLevel:'+ item.currentLevel)
                 const res = await this.pcOrder(item)
                 if(res === 'wait'){
                   console.log('locked!wait!')
@@ -232,7 +250,7 @@
                     item.actions.unshift(res.error.message)
                   }else{
                     item.actions.unshift('平仓 '+ res.orderQty + '... '+'价格 '+res.price +'... '+ ' 时间 ' + moment().format('YYYY-MM-DD HH:mm:ss'))
-                    console.log('平仓 '+ res.orderQty + '... '+'价格 '+res.price +'... '+ ' 时间 ' + moment().format('YYYY-MM-DD HH:mm:ss'))
+                    console.log('平仓 '+ res.orderQty + '... '+'价格 '+res.price +'... '+ ' 时间 ' + moment().format('YYYY-MM-DD HH:mm:ss'),res)
                     item.nextPrice = item.prePrice
                     item.prePrice = item.prePrice + item.levelPrice
                     item.nextLevel = item.currentLevel
@@ -243,7 +261,10 @@
                   try {
                     item.postType = 'update'
                     await postLevelPriceCelve(item)
+                    await this.getCelves('running')
                     this.orderLocks[item._id] = false
+                    this.lockCelve = false
+                    console.timeEnd()
                   } catch (e) {
                     this.orderLocks[item._id] = false
                     console.log(e)
@@ -252,6 +273,12 @@
               }
             }else if(item.side === 'Sell'){
               if(currentPrice >= item.nextPrice - item.offset && item.nextLevel <= item.level){
+                if(this.lockCelve){
+                  console.log('celve locked!')
+                  return
+                }
+                console.time()
+                this.lockCelve = true
                 console.log('触发开单!当前价格：'+currentPrice +'... '+'nextPrice:'+ item.nextPrice+'... '+'nextLevel:'+ item.nextLevel)
                 const res = await this.createOrder(item)
                 if(res === 'wait'){
@@ -273,15 +300,24 @@
                   try {
                     item.postType = 'update'
                     await postLevelPriceCelve(item)
+                    await this.getCelves('running')
                     this.orderLocks[item._id] = false
+                    this.lockCelve = false
+                    console.timeEnd()
                   } catch (e) {
                     this.orderLocks[item._id] = false
                     console.log(e)
                   }
                 }
               }
-              if(currentPrice <= item.prePrice  - item.offset && item.currentLevel > 1){
-                console.log('触发平仓!当前价格：'+currentPrice +'... '+'prePrice:'+ item.prePrice+'... '+'currentLevel:'+ item.currentLevel)
+              if(currentPrice <= item.stopPrice  - item.offset && item.currentLevel > 1){
+                if(this.lockCelve){
+                  console.log('celve locked!')
+                  return
+                }
+                console.time()
+                this.lockCelve = true
+                console.log('触发平仓!当前价格：'+currentPrice +'... '+'stopPrice:'+ item.stopPrice+'... '+'currentLevel:'+ item.currentLevel)
                 const res = await this.pcOrder(item)
                 if(res === 'wait'){
                   console.log('locked!wait!')
@@ -303,7 +339,11 @@
                   try {
                     item.postType = 'update'
                     await postLevelPriceCelve(item)
+                    await this.getCelves('running')
                     this.orderLocks[item._id] = false
+                    this.lockCelve = false
+                    console.timeEnd()
+
                   } catch (e) {
                     this.orderLocks[item._id] = false
                     console.log(e)
@@ -312,6 +352,8 @@
               }
             }
           })
+
+
         },
         async createOrder(celve){
           if(this.orderLocks[celve._id]) {
@@ -356,7 +398,7 @@
               symbol:'XBTUSD',
               side:celve.side === 'Buy'?'Sell':'Buy',
               orderQty:celve.qt,
-              price:celve.prePrice,
+              price:celve.stopPrice,
               ordType:'Limit',
               clOrdID:celve._id + celve.preLevel + moment().format('HHmmss')
             }
