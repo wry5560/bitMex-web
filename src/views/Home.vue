@@ -97,7 +97,7 @@ export default {
     this.initWebSocket()
     this.getUsers()
     const _this = this
-    setInterval(()=>{_this.getCelves('running')},2000)
+    setInterval(() => { _this.getCelves('running') }, 2000)
   },
   destroyed () {
     this.websock.close() // 离开路由之后断开websocket连接
@@ -551,9 +551,10 @@ export default {
     async insertCelve (values) {
       values.username = this.currentUser.userName
       if (values.type === 'Market')values.startPrice = this.wsDatas.trade[0].price
-      values.stopPrice=999999
-      values.prePrice=values.startPrice
-      values.nextPrice = values.startPrice
+      values.stopPrice = values.side === 'Buy' ? 999999 : 0
+      values.currentPrice = values.startPrice
+      values.prePrice = values.side === 'Buy' ? values.currentPrice + values.levelPrice : values.currentPrice - values.levelPrice
+      values.nextPrice = values.side === 'Buy' ? values.currentPrice - values.levelPrice : values.currentPrice + values.levelPrice
       values.postType = 'insert'
       try {
         await postLevelPriceCelve(values)
@@ -564,10 +565,11 @@ export default {
       // console.log(JSON.stringify(values))
     },
     async updateCelve (values) {
-      if(values.currentLevel !== 0){
-        values.stopPrice= values.side === 'Buy' ? values.prePrice + values.levelPrice : values.prePrice - values.levelPrice
-        values.nextPrice = values.side === 'Buy' ? values.prePrice - values.levelPrice : values.prePrice + values.levelPrice
+      if (values.currentLevel !== 0) {
+        values.stopPrice = values.side === 'Buy' ? values.currentPrice + values.levelPrice : values.currentPrice - values.levelPrice
       }
+      values.prePrice = values.side === 'Buy' ? values.currentPrice + values.levelPrice : values.currentPrice - values.levelPrice
+      values.nextPrice = values.side === 'Buy' ? values.currentPrice - values.levelPrice : values.currentPrice + values.levelPrice
       values.postType = 'update'
       values.actions.unshift('策略更新...' + ' ' + moment().format('YYYY-MM-DD HH:mm:ss'))
       try {

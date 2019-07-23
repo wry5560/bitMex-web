@@ -188,75 +188,36 @@
         },
 
        levelPriceCelve(currentPrice){
-
-
           this.celves.forEach(async item=>{
             if(item.side === 'Buy'){
-              if(currentPrice <= item.nextPrice + item.offset && item.nextLevel <= item.level){
-                if(this.lockCelve){
+              if(currentPrice <= item.prePrice - item.offset){
+                if (this.lockCelve) {
                   console.log('celve locked!')
                   return
                 }
                 console.time()
                 this.lockCelve = true
-                console.log('触发开单!当前价格：'+currentPrice +'... '+'nextPrice:'+ item.nextPrice+'... '+'nextLevel:'+ item.nextLevel)
+                console.log('触发开单!开单价格：' + currentPrice + '... ' + '触发价:' + item.prePrice + '... ' + 'nextPrice:' + item.nextPrice + '... ' + 'nextLevel:' + item.nextLevel)
                 const res = await this.createOrder(item)
-                if(res === 'wait'){
-                  console.log('locked!wait!')
+                if (res === 'wait') {
+                  console.log('createOrder locked! wait!')
                   return
-                }else{
-                  console.log('')
-                  if(res.error){
+                } else {
+                  if (res.error) {
                     item.actions.unshift(res.error.message)
-                  }else{
-                    item.actions.unshift('下单 '+ res.orderQty + '... '+'价格 '+ res.price +'... '+ ' 时间 ' + moment().format('YYYY-MM-DD HH:mm:ss'))
-                    console.log('下单 '+ res.orderQty + '... '+'价格 '+res.price +'... '+ ' 时间 ' + moment().format('YYYY-MM-DD HH:mm:ss'))
+                  } else {
+                    const message = res.orderQty
+                      ? '下单 ' + res.orderQty + '... ' + '价格 ' + res.price + '... ' + ' 时间 ' + moment().format('YYYY-MM-DD HH:mm:ss')
+                      : JSON.stringify(res) + moment().format('YYYY-MM-DD HH:mm:ss')
+                    item.actions.unshift(message)
+                    console.log(message)
                     item.preLevel = item.currentLevel
-                    item.currentLevel=item.nextLevel
-                    item.nextLevel = item.nextLevel +1
-                    item.stopPrice = item.currentLevel ==1 ? 999999 :item.prePrice
-                    item.prePrice = item.nextPrice
-                    item.nextPrice = item.nextPrice - item.levelPrice
-                  }
-                  try {
-                    item.postType = 'update'
-                    await postLevelPriceCelve(item)
-                    await this.getCelves('running')
-                    this.orderLocks[item._id] = false
-                    this.lockCelve = false
-                    console.timeEnd()
-                  } catch (e) {
-                    this.orderLocks[item._id] = false
-                    console.log(e)
-                  }
-                }
-                // debugger
-
-              }
-              if(currentPrice >= item.stopPrice - item.offset && item.currentLevel > 1){
-                if(this.lockCelve){
-                  console.log('celve locked!')
-                  return
-                }
-                console.time()
-                this.lockCelve = true
-                console.log('触发平仓!当前价格：'+currentPrice +'... '+'stopPrice:'+ item.stopPrice+'... '+'currentLevel:'+ item.currentLevel)
-                const res = await this.pcOrder(item)
-                if(res === 'wait'){
-                  console.log('locked!wait!')
-                  return
-                }else{
-                  if(res.error){
-                    item.actions.unshift(res.error.message)
-                  }else{
-                    item.actions.unshift('平仓 '+ res.orderQty + '... '+'价格 '+res.price +'... '+ ' 时间 ' + moment().format('YYYY-MM-DD HH:mm:ss'))
-                    console.log('平仓 '+ res.orderQty + '... '+'价格 '+res.price +'... '+ ' 时间 ' + moment().format('YYYY-MM-DD HH:mm:ss'),res)
-                    item.nextPrice = item.prePrice
-                    item.prePrice = item.prePrice + item.levelPrice
-                    item.nextLevel = item.currentLevel
-                    item.currentLevel=item.preLevel
-                    item.preLevel = item.preLevel - 1
-                    item.stopPrice = item.stopPrice = item.currentLevel ===1 ? 999999 : item.prePrice + item.levelPrice
+                    item.currentLevel = item.nextLevel
+                    item.nextLevel = item.nextLevel + 1
+                    item.currentPrice = item.currentPrice - item.levelPrice
+                    item.prePrice = item.currentPrice + item.levelPrice
+                    item.nextPrice = item.currentPrice - item.levelPrice
+                    item.stopPrice = item.currentLevel == 1 ? 999999 : item.prePrice
                   }
                   try {
                     item.postType = 'update'
@@ -272,88 +233,89 @@
                 }
               }
             }else if(item.side === 'Sell'){
-              if(currentPrice >= item.nextPrice - item.offset && item.nextLevel <= item.level){
-                if(this.lockCelve){
+              if(currentPrice >= item.prePrice + item.offset){
+                //策略锁，判断是否有策略正在同时运行
+                if (this.lockCelve) {
                   console.log('celve locked!')
                   return
                 }
                 console.time()
                 this.lockCelve = true
-                console.log('触发开单!当前价格：'+currentPrice +'... '+'nextPrice:'+ item.nextPrice+'... '+'nextLevel:'+ item.nextLevel)
-                const res = await this.createOrder(item)
-                if(res === 'wait'){
-                  console.log('locked!wait!')
-                  return
-                }else{
-                  if(res.error){
-                    item.actions.unshift(res.error.message)
-                  }else{
-                    item.actions.unshift('下单 '+ res.orderQty + '... '+'价格 '+res.price +'... '+ ' 时间 ' + moment().format('YYYY-MM-DD HH:mm:ss'))
-                    console.log('下单 '+ res.orderQty + '... '+'价格 '+res.price +'... '+ ' 时间 ' + moment().format('YYYY-MM-DD HH:mm:ss'))
-                    item.preLevel = item.currentLevel
-                    item.currentLevel=item.nextLevel
-                    item.nextLevel = item.nextLevel +1
-                    item.stopPrice = item.currentLevel ==1 ? 999999 :item.prePrice
-                    item.prePrice = item.nextPrice
-                    item.nextPrice = item.nextPrice + item.levelPrice
-                  }
-                  try {
-                    item.postType = 'update'
-                    await postLevelPriceCelve(item)
-                    await this.getCelves('running')
-                    this.orderLocks[item._id] = false
-                    this.lockCelve = false
-                    console.timeEnd()
-                  } catch (e) {
-                    this.orderLocks[item._id] = false
-                    console.log(e)
-                  }
-                }
-              }
-              if(currentPrice <= item.stopPrice  - item.offset && item.currentLevel > 1){
-                if(this.lockCelve){
-                  console.log('celve locked!')
-                  return
-                }
-                console.time()
-                this.lockCelve = true
-                console.log('触发平仓!当前价格：'+currentPrice +'... '+'stopPrice:'+ item.stopPrice+'... '+'currentLevel:'+ item.currentLevel)
-                const res = await this.pcOrder(item)
-                if(res === 'wait'){
-                  console.log('locked!wait!')
-                  return
-                }else{
-                  if(res.error){
-                    item.actions.unshift(res.error.message)
-                  }else{
-                    item.actions.unshift('平仓 '+ res.orderQty + '... '+'价格 '+res.price +'... '+ ' 时间 ' + moment().format('YYYY-MM-DD HH:mm:ss'))
-                    console.log('平仓 '+ res.orderQty + '... '+'价格 '+res.price +'... '+ ' 时间 ' + moment().format('YYYY-MM-DD HH:mm:ss'))
-                    item.nextPrice = item.prePrice
-                    item.prePrice = item.prePrice - item.levelPrice
-                    item.nextLevel = item.currentLevel
-                    item.currentLevel=item.preLevel
-                    item.preLevel = item.preLevel - 1
-                    console.log('currentLevel:',item.currentLevel)
-                    item.stopPrice = item.currentLevel ==1 ? 999999 :item.prePrice - item.levelPrice
-                  }
-                  try {
-                    item.postType = 'update'
-                    await postLevelPriceCelve(item)
-                    await this.getCelves('running')
-                    this.orderLocks[item._id] = false
-                    this.lockCelve = false
-                    console.timeEnd()
+                console.log('触发挂单!挂单价格：' + currentPrice + '... ' + '触发价:' + item.prePrice + '... ' + 'nextPrice:' + item.nextPrice + '... ' + 'nextLevel:' + item.nextLevel)
 
-                  } catch (e) {
-                    this.orderLocks[item._id] = false
-                    console.log(e)
+                //将所有挂单撤销，以免重复挂单
+                try{
+
+                }catch (e) {
+                  console.log('撤单错误：',e)
+                }
+
+                //挂单
+                try{
+                  const res = await this.createOrder(item)
+                  if (res === 'wait') {
+                    console.log('createOrder locked! wait!')
+                    return
+                  } else {
+                    if (res.error) {
+                      item.actions.unshift(res.error.message)
+                    } else {
+                      const message = res.orderQty
+                        ? '挂单 ' + res.orderQty + '... ' + '价格 ' + res.price + '... ' + ' 时间 ' + moment().format('YYYY-MM-DD HH:mm:ss')
+                        : JSON.stringify(res) + moment().format('YYYY-MM-DD HH:mm:ss')
+                      item.actions.unshift(message)
+                      console.log(message)
+                      this.orderLocks[item._id] = false
+                    }
                   }
+                }catch (e) {
+                  console.log('挂单错误：',e)
+                }
+
+                //挂止盈单
+                try{
+                  const res = await this.pcOrder(item)
+                  if (res === 'wait') {
+                    console.log('pcOrder locked! wait!')
+                    return
+                  } else {
+                    if (res.error) {
+                      item.actions.unshift(res.error.message)
+                    } else {
+                      const message = res.orderQty
+                        ? '挂止盈单 ' + res.orderQty + '... ' + '价格 ' + res.price + '... ' + ' 时间 ' + moment().format('YYYY-MM-DD HH:mm:ss')
+                        : JSON.stringify(res) + moment().format('YYYY-MM-DD HH:mm:ss')
+                      item.actions.unshift(message)
+                      console.log(message)
+                      this.orderLocks[item._id] = false
+                    }
+                  }
+                }catch (e) {
+                  console.log('挂止盈单错误：',e)
+                }
+                //更新策略及日志
+                try {
+                  item.preLevel = item.currentLevel
+                  item.currentLevel = item.nextLevel
+                  item.nextLevel = item.nextLevel + 1
+                  item.currentPrice = item.currentPrice + item.levelPrice
+                  item.prePrice = item.currentPrice - item.levelPrice
+                  item.nextPrice = item.currentPrice + item.levelPrice
+                  item.stopPrice = item.currentLevel == 1 ? 0 : item.prePrice
+                  item.postType = 'update'
+                  await postLevelPriceCelve(item)
+                  await this.getCelves('running')
+                  this.orderLocks[item._id] = false
+                  this.lockCelve = false
+                  console.timeEnd()
+                } catch (e) {
+                  this.orderLocks[item._id] = false
+                  console.log(e)
                 }
               }
+
             }
           })
-
-
         },
         async createOrder(celve){
           if(this.orderLocks[celve._id]) {
@@ -374,7 +336,7 @@
               clOrdID:celve._id + celve.nextLevel + moment().format('HHmmss')
             }
             try{
-              console.log('开单参数：',params)
+              console.log('开单参数：',JSON.stringify(params))
               const res = await postOrders(params)
               // this.orderLocks[celve._id] = false
               return res
