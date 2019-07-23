@@ -34,8 +34,9 @@ import moment from 'moment'
 import 'moment/locale/zh-cn'
 
 import { reqUsers, reqTradeHistory, reqWalletHistory, reqOrders, postOrders, postLevelPriceCelve, getLevelPriceCelve } from '@/api'
+import {settings} from '../../config/dev-setting'
+const {isTest} = settings
 
-const isTest = true
 // const isTest=false
 export default {
   name: 'home',
@@ -107,7 +108,7 @@ export default {
     initWebSocket () { // 初始化weosocket
       if (!this.websock) {
         console.log('建立websocket连接')
-        const wsuri = 'wss://testnet.bitmex.com/realtimemd'
+        const wsuri = isTest ? 'wss://testnet.bitmex.com/realtimemd' : 'wss://www.bitmex.com/realtimemd'
         // const wsuri = 'wss://www.bitmex.com/realtimemd'
         this.websock = new WebSocket(wsuri)
         this.websock.onmessage = this.websocketonmessage
@@ -200,7 +201,7 @@ export default {
       const allData = JSON.parse(d)
       if (allData.length && allData.length > 0 && allData[1] == 'nomalInfos') {
         const data = allData[3]
-        if (typeof (data.table) === undefined) {
+        if (typeof(data.table) == 'undefined') {
           console.log(data)
           return
         }
@@ -320,7 +321,7 @@ export default {
         }
       } else if (allData.length && allData.length > 0 && allData[1] == this.currentUser.email) {
         const data = allData[3]
-        if (typeof (data.table) === undefined) {
+        if (typeof(data.table) == 'undefined') {
           console.log(data)
           return
         }
@@ -359,7 +360,7 @@ export default {
             console.log('transact', data.action, data.data)
             break
           case 'margin':
-            // console.log('margin',data.data)
+            console.log('margin',data.action, data.data)
             this.userData.margin = {
               ...this.userData.margin,
               ...data.data[0] }
