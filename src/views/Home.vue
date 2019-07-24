@@ -552,10 +552,11 @@ export default {
     async insertCelve (values) {
       values.username = this.currentUser.userName
       if (values.type === 'Market')values.startPrice = this.wsDatas.trade[0].price
-      values.stopPrice = values.side === 'Buy' ? 999999 : 0
       values.currentPrice = values.startPrice
+      values.stopPrice = values.side === 'Buy' ? values.currentPrice + values.levelPrice : values.currentPrice - values.levelPrice
+      values.preStopPrice = values.side === 'Buy' ? values.stopPrice + values.levelPrice : values.stopPrice - values.levelPrice
       values.prePrice = values.side === 'Buy' ? values.currentPrice + values.levelPrice : values.currentPrice - values.levelPrice
-      values.nextPrice = values.side === 'Buy' ? values.currentPrice - values.levelPrice : values.currentPrice + values.levelPrice
+      values.nextPrice = values.currentPrice
       values.postType = 'insert'
       try {
         await postLevelPriceCelve(values)
@@ -566,9 +567,10 @@ export default {
       // console.log(JSON.stringify(values))
     },
     async updateCelve (values) {
-      if (values.currentLevel !== 0) {
-        values.stopPrice = values.side === 'Buy' ? values.currentPrice + values.levelPrice : values.currentPrice - values.levelPrice
-      }
+      // if (values.currentLevel >1) {
+      values.stopPrice = values.side === 'Buy' ? values.currentPrice + values.levelPrice : values.currentPrice - values.levelPrice
+      values.preStopPrice = values.side === 'Buy' ? values.stopPrice + values.levelPrice : values.stopPrice - values.levelPrice
+      // }
       values.prePrice = values.side === 'Buy' ? values.currentPrice + values.levelPrice : values.currentPrice - values.levelPrice
       values.nextPrice = values.side === 'Buy' ? values.currentPrice - values.levelPrice : values.currentPrice + values.levelPrice
       values.postType = 'update'
