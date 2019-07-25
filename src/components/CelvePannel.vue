@@ -21,7 +21,7 @@
             下一级开单价：<div style="float: right"><b>{{this.currentCelve.nextPrice}}</b></div>
           </a-col>
           <a-col :lg="12">
-            当前挂单层级：<div style="float: right"><b>{{this.currentCelve.currentLevel}}</b></div>
+            当前层级：<div style="float: right"><b>{{this.currentCelve.currentLevel}}</b></div>
           </a-col>
           <a-col :lg="12">
             层级价差：<div style="float: right"><b>{{this.currentCelve.levelPrice}}</b></div>

@@ -193,17 +193,15 @@
 
           this.celves.forEach(async item=>{
             if(item.side === 'Buy'){
-              if(currentPrice <= item.prePrice - item.offset && item.currentLevel < item.level){
+              if(currentPrice <= item.prePrice - item.offset && item.currentLevel < item.level + 1){
                 this.doCelve(item,'Buy',false)
-              }
-              if(currentPrice >= item.preStopPrice + item.offset && item.currentLevel > 2){
+              }else if(currentPrice >= item.preStopPrice + item.offset && item.currentLevel > 2){
                 this.doCelve(item,'Buy',true)
               }
             }else if(item.side === 'Sell'){
-              if(currentPrice >= item.prePrice + item.offset && item.currentLevel < item.level){
+              if(currentPrice >= item.prePrice + item.offset && item.currentLevel < item.level + 1){
                 this.doCelve(item,'Sell',false)
-              }
-              if(currentPrice <= item.preStopPrice + item.offset && item.currentLevel > 2){
+              }else if(currentPrice <= item.preStopPrice + item.offset && item.currentLevel > 2){
                 this.doCelve(item,'Sell',true)
               }
             }
@@ -299,8 +297,9 @@
 
           //将所有挂单撤销，以免重复挂单
           console.time("delete");
-          if(this.currentLevel > 1){
+          if(item.currentLevel > 1){
             try{
+              console.log('撤单执行！')
               const delRes = await this.delAllOrder(item)
               if(delRes.error){
                 console.log('撤单错误：',delRes.error.message)
@@ -341,9 +340,10 @@
           console.timeEnd("挂单");
 
           //挂止盈单,当前挂单层级不满2时，则不执行
-          console.time("止盈")
+          console.time("挂止盈单")
           if(item.currentLevel > 1){
             try{
+
               const res = await this.pcOrder(item,isPc)
               if (res === 'wait') {
                 console.log('pcOrder locked! wait!')
@@ -369,14 +369,22 @@
           //更新策略及日志
           console.time("策略更新")
           try {
-            item.preLevel = item.currentLevel
-            item.currentLevel = item.nextLevel
-            item.nextLevel = isPc ? item.nextLevel - 1 : item.nextLevel + 1
-            item.currentPrice = (side==='Buy' && !isPc) || (side==='Sell' && isPc) ? item.currentPrice - item.levelPrice : item.currentPrice + item.levelPrice
-            item.prePrice = (side==='Buy' && !isPc) || (side==='Sell' && isPc) ? item.prePrice - item.levelPrice : item.prePrice + item.levelPrice
-            item.nextPrice = (side==='Buy' && !isPc) || (side==='Sell' && isPc) ? item.nextPrice - item.levelPrice : item.nextPrice + item.levelPrice
-            item.stopPrice = (side==='Buy' && !isPc) || (side==='Sell' && isPc) ? item.stopPrice - item.levelPrice : item.stopPrice + item.levelPrice
-            item.preStopPrice = (side==='Buy' && !isPc) || (side==='Sell' && isPc) ? item.preStopPrice - item.levelPrice : item.preStopPrice + item.levelPrice
+            item.preLevel = isPc ? item.preLevel-2 : item.preLevel +1
+            item.currentLevel =  isPc ? item.currentLevel - 2 : item.currentLevel +1
+            item.nextLevel = isPc ? item.nextLevel - 2 : item.nextLevel + 1
+            if(isPc){
+              item.currentPrice = side==='Buy'  ? item.currentPrice + 2 * item.levelPrice : item.currentPrice - 2 * item.levelPrice
+              item.prePrice = side==='Buy' ? item.prePrice + 2 * item.levelPrice : item.prePrice - 2 * item.levelPrice
+              item.nextPrice = side==='Buy'  ? item.nextPrice + 2 * item.levelPrice : item.nextPrice - 2 * item.levelPrice
+              item.stopPrice = side==='Buy'  ? item.stopPrice + 2 * item.levelPrice : item.stopPrice - 2 * item.levelPrice
+              item.preStopPrice = side==='Buy'  ? item.preStopPrice + 2 * item.levelPrice : item.preStopPrice - 2 * item.levelPrice
+            }else{
+              item.currentPrice = side==='Buy'  ? item.currentPrice - item.levelPrice : item.currentPrice + item.levelPrice
+              item.prePrice = side==='Buy' ? item.prePrice - item.levelPrice : item.prePrice + item.levelPrice
+              item.nextPrice = side==='Buy'  ? item.nextPrice - item.levelPrice : item.nextPrice + item.levelPrice
+              item.stopPrice = side==='Buy'  ? item.stopPrice - item.levelPrice : item.stopPrice + item.levelPrice
+              item.preStopPrice = side==='Buy'  ? item.preStopPrice - item.levelPrice : item.preStopPrice + item.levelPrice
+            }
             item.postType = 'update'
             console.log('更新策略，参数:',item)
             await postLevelPriceCelve(item)
