@@ -553,10 +553,11 @@ export default {
       values.username = this.currentUser.userName
       if (values.type === 'Market')values.startPrice = this.wsDatas.trade[0].price
       values.currentPrice = values.startPrice
-      values.prePrice = values.side === 'Buy' ? values.currentPrice + values.levelPrice : values.currentPrice - values.levelPrice
-      values.nextPrice = values.currentPrice
-      values.stopPrice = values.side === 'Buy' ? values.prePrice + values.levelPrice : values.prePrice - values.levelPrice
-      values.preStopPrice = values.side === 'Buy' ? values.stopPrice + values.levelPrice : values.stopPrice - values.levelPrice
+      // values.prePrice = values.side === 'Buy' ? values.currentPrice + values.levelPrice : values.currentPrice - values.levelPrice
+      values.prePrice = values.currentPrice + values.levelPrice
+      values.nextPrice = values.currentPrice - values.levelPrice
+      // values.stopPrice = values.side === 'Buy' ? values.prePrice + values.levelPrice : values.prePrice - values.levelPrice
+      // values.preStopPrice = values.side === 'Buy' ? values.stopPrice + values.levelPrice : values.stopPrice - values.levelPrice
       values.postType = 'insert'
       try {
         await postLevelPriceCelve(values)
@@ -568,12 +569,13 @@ export default {
     },
     async updateCelve (values) {
       // if (values.currentLevel >1) {
-
+      values.prePrice = values.currentPrice + values.levelPrice
+      values.nextPrice = values.currentPrice - values.levelPrice
       // }
-      values.prePrice = values.side === 'Buy' ? values.currentPrice + values.levelPrice : values.currentPrice - values.levelPrice
-      values.nextPrice = values.side === 'Buy' ? values.currentPrice - values.levelPrice : values.currentPrice + values.levelPrice
-      values.stopPrice = values.side === 'Buy' ? values.prePrice + values.levelPrice : values.prePrice - values.levelPrice
-      values.preStopPrice = values.side === 'Buy' ? values.stopPrice + values.levelPrice : values.stopPrice - values.levelPrice
+      // values.prePrice = values.side === 'Buy' ? values.currentPrice + values.levelPrice : values.currentPrice - values.levelPrice
+      // values.nextPrice = values.side === 'Buy' ? values.currentPrice - values.levelPrice : values.currentPrice + values.levelPrice
+      // values.stopPrice = values.side === 'Buy' ? values.prePrice + values.levelPrice : values.prePrice - values.levelPrice
+      // values.preStopPrice = values.side === 'Buy' ? values.stopPrice + values.levelPrice : values.stopPrice - values.levelPrice
       values.postType = 'update'
       values.actions.unshift('策略更新...' + ' ' + moment().format('YYYY-MM-DD HH:mm:ss'))
       try {
