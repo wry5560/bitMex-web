@@ -349,9 +349,9 @@
                  this.doMulitCelve(item,'Sell')
                  break
                case (item.qt * item.currentLevel > userPosition  && userPosition > item.qt * (item.currentLevel- 1)):
-                 console.log('userPosition:',userPosition)
-                 console.log('item.qt * item.currentLevel:',(item.qt * item.currentLevel))
-                 console.log('item.qt * (item.currentLevel- 1):',(item.qt * (item.currentLevel- 1)))
+                 // console.log('userPosition:',userPosition)
+                 // console.log('item.qt * item.currentLevel:',(item.qt * item.currentLevel))
+                 // console.log('item.qt * (item.currentLevel- 1):',(item.qt * (item.currentLevel- 1)))
                  if(this.currentPrice * 2 < item.prePrice + item.nextPrice){
                    console.log('Buy')
                    const qt = item.qt * item.currentLevel - userPosition
@@ -540,8 +540,8 @@
                 // side:celve.side,
                 side:side ,
                 orderQty:qt,
-                // price:firstTime ? item.prePrice :  side=='Buy' ? item.currentPrice : item.prePrice + item.levelPrice ,
-                ordType:'Market',
+                price: side=='Buy' ? (item.currentPrice + 10):(item.currentPrice - 10 ) ,
+                ordType:'Limit',
                 clOrdID:item._id + item.currentLevel + moment().format('HHmmss')
               })
             }
