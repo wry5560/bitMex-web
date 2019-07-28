@@ -9,7 +9,10 @@ const service = axios.create({
   // baseURL:process.env.NODE_ENV === 'production'
   //     ? apiBaseUrl :testApiBaseUrl,
 
-  timeout: 60000 // 请求超时时间
+  timeout: 60000, // 请求超时时间
+  // headers:{
+  //   'Content-Type' : 'application/x-www-form-urlencoded;charset=UTF-8'
+  // },
   // httpAgent:new Agent({}),
   // httpsAgent:new Agent({})
 })
@@ -56,8 +59,10 @@ const err = (error) => {
 
     // Return the promise in which recalls axios to retry the request
     return backoff.then(function() {
-      console.log('timeout! retry...')
-      return axios(config);
+      console.log('timeout! retry...',config)
+      console.log('config.__retryCount',config.__retryCount)
+      // console.log('timeout! retry...')
+      return service(config);
     });
     // console.log('timeout')
     // console.log(error.request);
@@ -73,6 +78,12 @@ service.interceptors.request.use(config => {
   // if (token) {
   //     config.headers[ 'Access-Token' ] = token // 让每个请求携带自定义 token 请根据实际情况自行修改
   // }
+  config={
+    ...config,
+    retry: 5,
+    retryDelay: 1000
+  }
+  // console.log(config)
   return config
 }, err)
 

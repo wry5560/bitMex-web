@@ -17,6 +17,11 @@ export default new Router({
       component: () => import(/* webpackChunkName: "about" */ './views/Serve.vue')
     },
     {
+      path: '/servePosition',
+      name: 'servePosition',
+      component: () => import(/* webpackChunkName: "about" */ './views/ServePosition.vue')
+    },
+    {
       path: '/login',
       name: 'login',
       // route level code-splitting

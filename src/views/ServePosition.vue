@@ -12,7 +12,23 @@
       <template slot="index" slot-scope="text, record,index">
         <div style="text-align: center">{{index + 1}}</div>
       </template>
+      <!--<template slot="position" slot-scope="text, record,index">-->
+        <!--<div style="text-align: center">{{positions.length > 0 ? positions.find(i=>i.username ==record.username).position :'-'}}</div>-->
+      <!--</template>-->
     </a-table>
+    <div style="width: 400px;margin-top: 24px">
+      <a-card title="持仓情况" :headStyle="headStyle" :bodyStyle="bodyStyle">
+        <div style="height: 400px;">
+          <div v-for="(item,index) in positions" :key="item.username" :class="rowClass(item,index)">
+            <a-row>
+              <a-col :lg="12" style="text-align: center">{{item.username}}</a-col>
+              <a-col :lg="12" style="text-align: center">{{item.position}}</a-col>
+            </a-row>
+          </div>
+        </div>
+      </a-card>
+    </div>
+
   </div>
 </template>
 
@@ -30,26 +46,37 @@
       data(){
           return {
             websock: null,
+            users:[],
             setIntervalPingPong: null,
             setTimeoutReset: null,
             lockReconnect: false,
             lockCelve:false,
             orderLocks:{},
             celves: [],
+            positions:[],
+            positionLocks:{},
             currentPrice:null,
+            bodyStyle: {
+              height: '400px',
+              padding: 0,
+              overflow: 'auto'
+            },
+            headStyle: {
+              'text-align': 'left'
+            },
             table:{
               columns:[
                 {title:'序号',align:'center',key:'index',dataIndex:'index',scopedSlots: { customRender: 'index' },},
                 {title:'用户',align:'center',key:'username',dataIndex:'username'},
-                {title:'方向',align:'center',key:'side',dataIndex:'side'},
-                {title:'起始价格',align:'center',key:'startPrice',dataIndex:'startPrice'},
-                {title:'每层仓位',align:'center',key:'qt',dataIndex:'qt'},
-                {title:'下一级开单价',align:'center',key:'nextPrice',dataIndex:'nextPrice'},
-                {title:'触发挂单价',align:'center',key:'prePrice',dataIndex:'prePrice',},
-                {title:'止盈价',align:'center',key:'stopPrice',dataIndex:'stopPrice'},
-                {title:'层级价差',align:'center',key:'levelPrice',dataIndex:'levelPrice'},
-                {title:'当前层级',align:'center',key:'currentLevel',dataIndex:'currentLevel'},
+                {title:'基准价',align:'center',key:'startPrice',dataIndex:'startPrice'},
                 {title:'总层级',align:'center',key:'level',dataIndex:'level'},
+                {title:'每层价差',align:'center',key:'levelPrice',dataIndex:'levelPrice'},
+                {title:'每层仓位',align:'center',key:'qt',dataIndex:'qt'},
+                {title:'当前层级',align:'center',key:'currentLevel',dataIndex:'currentLevel'},
+                {title:'当前基准价',align:'center',key:'currentPrice',dataIndex:'currentPrice'},
+                {title:'下一级挂单价（多）',align:'center',key:'nprePriceextPrice',dataIndex:'nextPrice'},
+                {title:'下一级挂单价（空）',align:'center',key:'',dataIndex:'prePrice',},
+                // {title:'持仓',align:'center',key:'position',dataIndex:'position',scopedSlots: { customRender: 'position' }},
                 ]
             }
         }
@@ -57,21 +84,44 @@
       computed:{
 
       },
-      created () {
+      async created  () {
         this.initWebSocket()
-        this.getUsers()
         const _this = this
+        await this.getUsers()
         setInterval(()=>{_this.getCelves('running')},2000)
+        setInterval(()=>{_this.levelPriceCelve()},1000)
       },
       destroyed () {
         this.websock.close() // 离开路由之后断开websocket连接
       },
       methods: {
         moment,
+        // 单双行条纹样式
+        rowClass (record, index) {
+          let classNames = ''
+          if (index % 2 === 1) classNames = 'even-rows '
+          // if (record.side === 'Buy') {
+          //   classNames = classNames + ' ' + 'buy-trade'
+          // } else {
+          //   classNames = classNames + ' ' + 'sell-trade'
+          // }
+          return classNames
+        },
+        initPosition(){
+          this.positions=[]
+          if(this.users.length>0){
+            this.users.forEach(user=>{
+              this.positions.push({
+                username:user.userName,
+                position:user.position.length>0 ? user.position.find(i=>i.symbol==='XBTUSD').currentQty :'-',
+              })
+            })
+          }
+        },
         initWebSocket () { // 初始化weosocket
           if (!this.websock) {
             console.log('建立websocket连接')
-            const wsuri =isTest ?  'wss://testnet.bitmex.com/realtime' : 'wss://www.bitmex.com/realtime'
+            const wsuri =isTest ?  'wss://testnet.bitmex.com/realtimemd' : 'wss://www.bitmex.com/realtimemd'
             // const wsuri = 'wss://www.bitmex.com/realtimemd'
             this.websock = new WebSocket(wsuri)
             this.websock.onmessage = this.websocketonmessage
@@ -84,13 +134,21 @@
         },
         websocketonopen () { // 连接建立之后执行send方法发送数据
           console.log('websocket已连接')
-          const op = { 'op': 'subscribe', 'args': ['trade:XBTUSD'] }
-          this.websocketsend(JSON.stringify(op))
+          // const op = { 'op': 'subscribe', 'args': ['trade:XBTUSD'] }
+          // this.websocketsend(JSON.stringify(op))
           // this.websock.send(op)
+          const op = [1, 'nomalInfos', 'allUsers']
+          this.websock.send(JSON.stringify(op))
+          const op2 = [0, 'nomalInfos', 'allUsers', { 'op': 'subscribe', 'args': ['trade:XBTUSD'] }]
+          this.websock.send(JSON.stringify(op2))
 
           // console.log(typeof (op) ,op)
           this.setIntervalWs()
-          // if (this.currentUser.userName) this.createdUserWs()
+          if (this.users.length>0) {
+            this.users.forEach(user=>{
+              this.createdUserWs(user)
+            })
+          }
           // let actions = { 'test': '12345' }
           // this.websocketsend(JSON.stringify(actions))
         },
@@ -159,18 +217,87 @@
             return
           }
           const allData = JSON.parse(d)
-          if(allData.table && allData.table==='trade'){
-            // console.log('trade:',allData.action,allData.data)
-            this.currentPrice=allData.data[0].price
-            this.levelPriceCelve(allData.data[0].price)
-            return
+          if (allData.length && allData.length > 0 && allData[1] == 'nomalInfos') {
+            const data = allData[3]
+            if (typeof(data.table) == 'undefined') {
+              console.log(allData)
+              return
+            }
+            switch (data.table) {
+              case 'trade':
+                this.currentPrice=data.data[0].price
+                // if (data.action === 'partial') {
+                //   for (let i = 0; i < data.data.length; i++) {
+                //     // data.data[i].key = data.data.trdMatchID
+                //     const date = moment(data.data[i].timestamp).format('HH:mm:ss')
+                //     data.data[i].time = date
+                //   }
+                //   this.wsDatas.trade = data.data
+                // } else if (data.action === 'insert') {
+                //   for (let i = 0; i < data.data.length; i++) {
+                //     // data.data[i].key = data.data.trdMatchID
+                //     const date = moment(data.data[i].timestamp).format('HH:mm:ss')
+                //     data.data[i].time = date
+                //     this.wsDatas.trade.unshift(data.data[i])
+                //   }
+                //   if (this.wsDatas.trade.length > 60) this.wsDatas.trade = this.wsDatas.trade.slice(0, 59)
+                // }
+                // console.log(data.action + ' : ', data.data)
+                break
+            }
+          } else if (allData.length && allData.length > 3) {
+            const user = allData[2]
+            const data = allData[3]
+            if (typeof(data.table) == 'undefined') {
+              console.log(allData)
+              return
+            }
+            // debugger
+            switch (data.table) {
+              case 'position':
+                // console.log('position:',allData)
+                const thisUser = this.users.find(i=>i.userName == user)
+                switch (data.action) {
+                  case 'partial':
+                    thisUser.position = [...data.data]
+                    this.initPosition()
+                    console.log(thisUser)
+                    break
+                  case 'update':
+                    // thisUser.position = {...thisUser.position , ...data.data}
+                    for (let i = 0; i < data.data.length; i++) {
+                      let itemIndex = thisUser.position.findIndex(position => position.symbol === data.data[i].symbol)
+                      thisUser.position[itemIndex] = {
+                        ...thisUser.position[itemIndex],
+                        ...data.data[i]
+                      }
+                      this.initPosition()
+                    }
+                    break
+                  case 'insert':
+                    for (let i = 0; i < data.data.length; i++) {
+                      thisUser.position.push(data.data[i])
+                    }
+                    this.initPosition()
+                }
+                // console.log('position',data.action , data.data)
+
+                break
+            }
+          } else {
+            console.log(allData)
           }
-          console.log(allData)
+
         },
         async getUsers () {
           try {
             console.log('get users!')
             this.users = await reqUsers()
+            this.users.forEach(user=>{
+              user.position=[]
+              this.positionLocks[user.userName]=false
+              this.createdUserWs(user)
+            })
           } catch (err) {
             console.log(err)
           }
@@ -182,46 +309,77 @@
               this.celves = res.data
               this.celves.forEach((item)=>{
                 item.key=item.username[0]
-
               })
             }
           } catch (e) {
             console.log(e)
           }
         },
-
-       levelPriceCelve(currentPrice){
-
-          this.celves.forEach(async item=>{
-            if(item.firstTime){
-              this.doMulitCelve(item,null,true)
-            }else{
-              if(currentPrice >= item.prePrice + item.offset && item.currentLevel > (-1 - item.level) ){
-                this.doMulitCelve(item,'Sell')
-              }else if(currentPrice <= item.nextPrice - item.offset && item.currentLevel < item.level + 1 ){
-                this.doMulitCelve(item,'Buy')
-              }
-            }
-
-
-            // if(item.side === 'Buy'){
-            //   if(currentPrice <= item.prePrice - item.offset && item.currentLevel < item.level + 1){
-            //     this.doCelve(item,'Buy',false)
-            //   }else if(currentPrice >= item.preStopPrice + item.offset && item.currentLevel > 2){
-            //     this.doCelve(item,'Buy',true)
-            //   }
-            // }else if(item.side === 'Sell'){
-            //   if(currentPrice >= item.prePrice + item.offset && item.currentLevel < item.level + 1){
-            //     this.doCelve(item,'Sell',false)
-            //   }else if(currentPrice <= item.preStopPrice + item.offset && item.currentLevel > 2){
-            //     this.doCelve(item,'Sell',true)
-            //   }
-            // }
-          })
+        createdUserWs(user){
+          const { userName, apiKey, email } = user
+          if (userName) {
+            const key = isTest ? apiKey[0].key : apiKey[1].key
+            const apiSecret = isTest ? apiKey[0].apiSecret : apiKey[1].apiSecret
+            // console.log(key)
+            // console.log(apiSecret)
+            const verb = 'GET'
+            const path = '/realtime'
+            const expires = Math.round(new Date().getTime() / 1000) + 10
+            const signature = bitMexSignature(apiSecret, verb, path, expires)
+            const op = [1, email, userName]
+            this.websocketsend(JSON.stringify(op))
+            const op2 = [0, email, userName, { 'op': 'authKeyExpires', 'args': [key, expires, signature] }]
+            this.websocketsend(JSON.stringify(op2))
+            const op3 = [0, email, userName, { 'op': 'subscribe', 'args': ['position'] }]
+            this.websocketsend(JSON.stringify(op3))
+          }
+        },
+       levelPriceCelve(){
+         this.celves.forEach(async item=>{
+           if(item.firstTime){
+                 this.doMulitCelve(item,null,true)
+               }else{
+             const userPosition = this.positions.find(i=>i.username==item.username[0]).position
+             switch (true) {
+               case ( userPosition >= item.qt * (item.currentLevel+ 1)):
+                 this.doMulitCelve(item,'Buy')
+                     break
+               case (userPosition <= item.qt * (item.currentLevel- 1)):
+                 this.doMulitCelve(item,'Sell')
+                 break
+               case (item.qt * item.currentLevel > userPosition > item.qt * (item.currentLevel- 1)):
+                 if(this.currentPrice * 2 < item.prePrice + item.nextPrice){
+                   console.log('Buy')
+                   const qt = item.qt * item.currentLevel - userPosition
+                   this.doMulitCelve(item,'Buy',true,qt)
+                 }
+                 break
+               case (item.qt * item.currentLevel < userPosition < item.qt * (item.currentLevel + 1)):
+                 if(this.currentPrice * 2 > item.prePrice + item.nextPrice){
+                   console.log('Sell')
+                   const qt = userPosition - item.qt * item.currentLevel
+                   this.doMulitCelve(item,'Sell',true,qt)
+                 }
+                 break
+             }
+           }
+         })
+          // this.celves.forEach(async item=>{
+          //   if(item.firstTime){
+          //     this.doMulitCelve(item,null,true)
+          //   }else{
+          //     if(currentPrice >= item.prePrice + item.offset && item.currentLevel > (-1 - item.level) ){
+          //       this.doMulitCelve(item,'Sell')
+          //     }else if(currentPrice <= item.nextPrice - item.offset && item.currentLevel < item.level + 1 ){
+          //       this.doMulitCelve(item,'Buy')
+          //     }
+          //   }
+          // })
         },
         async createOrder(celve,isPc,firstTime){
           if(this.orderLocks[celve._id]) {
             // debugger
+            console.log(this.orderLocks[celve._id] +'is locked! wait！')
             return 'wait'
           }else{
             console.log('发送开单命令！')
@@ -252,6 +410,7 @@
         async pcOrder(celve,isPc,firstTime){
           if(this.orderLocks[celve._id]) {
             // debugger
+            console.log(this.orderLocks[celve._id] +'is locked! wait！')
             return  'wait'
           }else{
             // console.log('发送平仓命令！')
@@ -294,174 +453,53 @@
             return {error:{message:e}}
           }
         },
-        async doCelve(item,side,isPc,firstTime){
-
+        async doMulitCelve(item,side,firstTime,qt){
           //策略锁，防止重复下单
-          if (this.lockCelve) {
-            console.log('celve locked!')
-            return
-          }
-          console.time()
-          this.lockCelve = true
-
-          // if(isPc){
-          //   console.log('触发止盈!止盈价格：' + this.currentPrice + '... ' + '触发价:' + item.preStopPrice + '... ' + 'nextPrice:' + item.nextPrice + '... ' + 'nextLevel:' + item.nextLevel)
-          // }else{
-          //   console.log('触发开单!开单价格：' + this.currentPrice + '... ' + '触发价:' + item.prePrice + '... ' + 'nextPrice:' + item.nextPrice + '... ' + 'nextLevel:' + item.nextLevel)
+          //   if (this.lockCelve) {
+          //   console.log('celve locked!')
+          //   return
           // }
-
+          // console.time()
+          // this.lockCelve = true
           //将所有挂单撤销，以免重复挂单
-          console.time("delete");
-          // if(item.currentLevel > 1){
-          if(!firstTime){
-            try{
-              console.log('撤单执行！')
-              const delRes = await this.delAllOrder(item)
-              if(delRes.error){
-                console.log('撤单错误：',delRes.error.message)
-                return
-              }
-              console.log('已发送撤单命令：',delRes)
-            }catch (e) {
-              console.log('撤单错误：',e)
-            }
-          }
-          // }
-          console.timeEnd("delete");
-
-          //挂单,当前挂单层级已达到设置层级数时，则不执行
-
-          console.time("挂单")
-          if(item.currentLevel < item.level){
-            try{
-              const res = await this.createOrder(item,isPc,firstTime)
-              if (res === 'wait') {
-                console.log('createOrder locked! wait!')
-                return
-              } else {
-                if (res.error) {
-                  item.actions.unshift(res.error.message)
-                } else {
-                  const message = res.orderQty
-                    ? '挂单 ' + res.orderQty + '... ' + '价格 ' + res.price + '... ' + ' 时间 ' + moment().format('YYYY-MM-DD HH:mm:ss')
-                    : JSON.stringify(res) + moment().format('YYYY-MM-DD HH:mm:ss')
-                  item.actions.unshift(message)
-                  console.log(message)
-                  this.orderLocks[item._id] = false
-                }
-              }
-            }catch (e) {
-              console.log('挂单错误：',e)
-            }
-          }
-          console.timeEnd("挂单");
-
-          //挂止盈单,当前挂单层级不满2时，则不执行
-          // console.time("挂止盈单")
-          console.time("挂空单")
-          if(item.currentLevel > 0 - item.level){
-            try{
-              const res = await this.pcOrder(item,isPc,firstTime)
-              if (res === 'wait') {
-                console.log('pcOrder locked! wait!')
-                return
-              } else {
-                if (res.error) {
-                  item.actions.unshift(res.error.message)
-                } else {
-                  const message = res.orderQty
-                    // ? '挂止盈单 ' + res.orderQty + '... ' + '价格 ' + res.price + '... ' + ' 时间 ' + moment().format('YYYY-MM-DD HH:mm:ss')
-                    ? '挂空单 ' + res.orderQty + '... ' + '价格 ' + res.price + '... ' + ' 时间 ' + moment().format('YYYY-MM-DD HH:mm:ss')
-                    : JSON.stringify(res) + moment().format('YYYY-MM-DD HH:mm:ss')
-                  item.actions.unshift(message)
-                  console.log(message)
-                  this.orderLocks[item._id] = false
-                }
-              }
-            }catch (e) {
-              // console.log('挂止盈单错误：',e)
-              console.log('挂空单错误：',e)
-            }
-          }
-          // console.timeEnd("止盈");
-          console.timeEnd("挂空单");
-
-          //更新策略及日志
-          console.time("策略更新")
-          try {
-            if(firstTime){
-              item.firstTime = false
-            }else{
-              item.currentLevel =  isPc ? item.currentLevel + 1 : item.currentLevel - 1
-              item.currentPrice =isPc ? item.currentPrice -  item.levelPrice : item.currentPrice +  item.levelPrice
-              item.prePrice =  isPc ? item.prePrice -  item.levelPrice : item.prePrice +  item.levelPrice
-              item.nextPrice =  isPc ? item.nextPrice -  item.levelPrice : item.nextPrice +  item.levelPrice
-            }
-            // item.preLevel = isPc ? item.preLevel-2 : item.preLevel +1
-            // 不是原来的代码item.currentLevel =  isPc ? item.currentLevel + 1 : item.currentLevel - 1
-            // item.nextLevel = isPc ? item.nextLevel - 2 : item.nextLevel + 1
-
-            // if(isPc){
-              // item.currentPrice = side==='Buy'  ? item.currentPrice + 2 * item.levelPrice : item.currentPrice - 2 * item.levelPrice
-              // item.prePrice = side==='Buy' ? item.prePrice + 2 * item.levelPrice : item.prePrice - 2 * item.levelPrice
-              // item.nextPrice = side==='Buy'  ? item.nextPrice + 2 * item.levelPrice : item.nextPrice - 2 * item.levelPrice
-              // item.stopPrice = side==='Buy'  ? item.stopPrice + 2 * item.levelPrice : item.stopPrice - 2 * item.levelPrice
-              // item.preStopPrice = side==='Buy'  ? item.preStopPrice + 2 * item.levelPrice : item.preStopPrice - 2 * item.levelPrice
-            // }else{
-              // item.currentPrice = side==='Buy'  ? item.currentPrice - item.levelPrice : item.currentPrice + item.levelPrice
-              // item.prePrice = side==='Buy' ? item.prePrice - item.levelPrice : item.prePrice + item.levelPrice
-              // item.nextPrice = side==='Buy'  ? item.nextPrice - item.levelPrice : item.nextPrice + item.levelPrice
-              // item.stopPrice = side==='Buy'  ? item.stopPrice - item.levelPrice : item.stopPrice + item.levelPrice
-              // item.preStopPrice = side==='Buy'  ? item.preStopPrice - item.levelPrice : item.preStopPrice + item.levelPrice
-            // }
-            item.postType = 'update'
-            console.log('更新策略，参数:',item)
-            await postLevelPriceCelve(item)
-            await this.getCelves('running')
-            this.orderLocks[item._id] = false
-            this.lockCelve = false
-          } catch (e) {
-            this.orderLocks[item._id] = false
-            console.log(e)
-          }
-          console.timeEnd("策略更新");
-          console.timeEnd()
-        },
-        async doMulitCelve(item,side,firstTime){
-          //策略锁，防止重复下单
-          if (this.lockCelve) {
-            console.log('celve locked!')
-            return
-          }
-          console.time()
-          this.lockCelve = true
-          //将所有挂单撤销，以免重复挂单
-          console.time("delete");
-          // if(item.currentLevel > 1){
-          if(!firstTime){
-            try{
-              console.log('撤单执行！')
-              const delRes = await this.delAllOrder(item)
-              if(delRes.error){
-                console.log('撤单错误：',delRes.error.message)
-                return
-              }
-              console.log('已发送撤单命令：',delRes)
-            }catch (e) {
-              console.log('撤单错误：',e)
-            }
-          }
-          // }
-          console.timeEnd("delete");
-          console.time("挂单")
-
-          if(this.orderLocks[item._id]) {
+          // const userPosition=this.positions.find(i=>i.username == item.username[0])
+          // debugger
+          console.log('this Position:',this.positions)
+          console.log('item:',item)
+          // console.log('userPosition:',userPosition)
+          if(this.positionLocks[item.username[0]]) {
             // debugger
-            return 'wait createOrder locked! wait!'
+            console.log('wait createOrder locked! wait!')
+            return
           }else{
+            this.positionLocks[item.username[0]]= true
+            console.log('挂单锁',this.positionLocks)
+          console.time("delete");
+          // if(item.currentLevel > 1){
+          // if(!firstTime){
+            try{
+              console.log('撤单执行！',this.positionLocks)
+              const delRes = await this.delAllOrder(item)
+              if(delRes.error){
+                console.log('撤单错误：',delRes.error.message)
+                this.positionLocks[item.username[0]]= false
+                return
+              }
+              console.log('已发送撤单命令：',delRes)
+            }catch (e) {
+              console.log('撤单错误：',e)
+              this.positionLocks[item.username[0]]= false
+              return
+            }
+          // }
+          // }
+          console.timeEnd("delete");
+          console.time("挂单")
+
+
             console.log('发送开单命令！')
             // debugger
-            this.orderLocks[item._id] = true
+
             const params={
               orders:[]
             }
@@ -489,6 +527,18 @@
                 clOrdID:item._id + item.currentLevel + moment().format('HHmmss')
               })
             }
+            if(qt){
+              params.orders.push({
+                username:item.username[0],
+                symbol:'XBTUSD',
+                // side:celve.side,
+                side:side ,
+                orderQty:qt,
+                // price:firstTime ? item.prePrice :  side=='Buy' ? item.currentPrice : item.prePrice + item.levelPrice ,
+                ordType:'Market',
+                clOrdID:item._id + item.currentLevel + moment().format('HHmmss')
+              })
+            }
             params.postType='create mulit'
             params.username=item.username[0]
             try{
@@ -496,7 +546,16 @@
               const res = await postOrders(params)
               // this.orderLocks[celve._id] = false
               if (res.error) {
-                item.actions.unshift(res.error.message)
+                item.actions.unshift(res.error)
+                this.positionLocks[item.username[0]] = false
+                return
+                // if(res.response.headers['x-ratelimit-remaining'] && res.response.headers['x-ratelimit-remaining']>10){
+                //   this.doMulitCelve(item,side,firstTime)
+                // }else{
+                //   const _this=this
+                //   setTimeout(()=>{_this.doMulitCelve(item,side,firstTime),res.response.headers['Retry-After'] ? res.response.headers['Retry-After']: 5000})
+                // }
+
               } else {
                 if(res.length){
                   res.forEach(i=>{
@@ -508,13 +567,16 @@
                   })
                 }else{
                   item.actions.unshift(JSON.stringify(res))
+                  this.positionLocks[item.username[0]] = false
+                  return
                 }
                 // console.log(res,JSON.stringify(res))
-                this.orderLocks[item._id] = false
+                // this.orderLocks[item._id] = false
               }
             }catch (e) {
               // this.orderLocks[celve._id] = false
               console.log('挂单错误：',e)
+              this.positionLocks[item.username[0]] = false
               return {error:{message:e}}
             }
           }
@@ -532,15 +594,16 @@
               item.prePrice =   side=='Buy' ? item.prePrice -  item.levelPrice : item.prePrice +  item.levelPrice
               item.nextPrice =   side=='Buy' ? item.nextPrice -  item.levelPrice : item.nextPrice +  item.levelPrice
             }
+            delete item.state
             item.postType = 'update'
             console.log('更新策略，参数:',item)
             await postLevelPriceCelve(item)
             await this.getCelves('running')
-            this.orderLocks[item._id] = false
-            this.lockCelve = false
+            this.positionLocks[item.username[0]]= false
+            // this.lockCelve = false
           } catch (e) {
-            this.orderLocks[item._id] = false
-            console.log(e)
+            userPosition.locked = false
+            this.positionLocks[item.username[0]]= false
           }
           console.timeEnd("策略更新");
           console.timeEnd()

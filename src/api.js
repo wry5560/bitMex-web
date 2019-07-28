@@ -102,3 +102,17 @@ export const postLevelPriceCelve = async function (datas) {
     console.log(err)
   }
 }
+export const postLog = async function (data) {
+  const options = {
+    url: baseUrl + '/logApi',
+    method: 'post',
+    data: {
+      log:JSON.stringify(data)
+    }
+  }
+  try {
+    await axios(options)
+  } catch (err) {
+    console.log(err)
+  }
+}
