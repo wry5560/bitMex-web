@@ -298,6 +298,7 @@
               this.positionLocks[user.userName]=false
               this.createdUserWs(user)
             })
+            return
           } catch (err) {
             console.log(err)
           }
@@ -347,20 +348,25 @@
                case (userPosition <= item.qt * (item.currentLevel- 1)):
                  this.doMulitCelve(item,'Sell')
                  break
-               case (item.qt * item.currentLevel > userPosition > item.qt * (item.currentLevel- 1)):
+               case (item.qt * item.currentLevel > userPosition  && userPosition > item.qt * (item.currentLevel- 1)):
+                 console.log('userPosition:',userPosition)
+                 console.log('item.qt * item.currentLevel:',(item.qt * item.currentLevel))
+                 console.log('item.qt * (item.currentLevel- 1):',(item.qt * (item.currentLevel- 1)))
                  if(this.currentPrice * 2 < item.prePrice + item.nextPrice){
                    console.log('Buy')
                    const qt = item.qt * item.currentLevel - userPosition
                    this.doMulitCelve(item,'Buy',true,qt)
                  }
                  break
-               case (item.qt * item.currentLevel < userPosition < item.qt * (item.currentLevel + 1)):
+               case (item.qt * item.currentLevel < userPosition && userPosition < item.qt * (item.currentLevel + 1)):
                  if(this.currentPrice * 2 > item.prePrice + item.nextPrice){
                    console.log('Sell')
                    const qt = userPosition - item.qt * item.currentLevel
                    this.doMulitCelve(item,'Sell',true,qt)
                  }
                  break
+               default :
+                 return
              }
            }
          })
