@@ -609,7 +609,7 @@
             this.positionLocks[item.username[0]]= false
             // this.lockCelve = false
           } catch (e) {
-            userPosition.locked = false
+            // userPosition.locked = false
             this.positionLocks[item.username[0]]= false
           }
           console.timeEnd("策略更新");
