@@ -113,7 +113,7 @@
             this.users.forEach(user=>{
               this.positions.push({
                 username:user.userName,
-                position:user.position.length>0 ? user.position.find(i=>i.symbol==='XBTUSD').currentQty :'-',
+                position:user.position.length>0 ? user.position.find(i=>i.symbol==='XBTUSD').currentQty :'0',
               })
             })
           }
@@ -141,7 +141,6 @@
           this.websock.send(JSON.stringify(op))
           const op2 = [0, 'nomalInfos', 'allUsers', { 'op': 'subscribe', 'args': ['trade:XBTUSD'] }]
           this.websock.send(JSON.stringify(op2))
-
           // console.log(typeof (op) ,op)
           this.setIntervalWs()
           if (this.users.length>0) {
@@ -281,8 +280,9 @@
                     this.initPosition()
                 }
                 // console.log('position',data.action , data.data)
-
                 break
+              case 'affiliate':
+                console.log('affiliate',data.action,data.data)
             }
           } else {
             console.log(allData)
@@ -331,7 +331,8 @@
             this.websocketsend(JSON.stringify(op))
             const op2 = [0, email, userName, { 'op': 'authKeyExpires', 'args': [key, expires, signature] }]
             this.websocketsend(JSON.stringify(op2))
-            const op3 = [0, email, userName, { 'op': 'subscribe', 'args': ['position'] }]
+            const option = userName == '233089043' ? ['position','affiliate']:['position']
+            const op3 = [0, email, userName, { 'op': 'subscribe', 'args': option }]
             this.websocketsend(JSON.stringify(op3))
           }
         },

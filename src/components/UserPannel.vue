@@ -1,9 +1,15 @@
 <template>
     <div>
-      <a-card title="用户面板" :headStyle="headStyle" :bodyStyle="bodyStyle">
+      <a-card :headStyle="headStyle" :bodyStyle="bodyStyle">
+        <div slot="title">
+          <div style="display: inline-block">用户面板</div>
+          <div style="float:right">
+            <a href="https://www.bitmex.com/register/03ZFb7" target="_blank">注册链接</a>
+          </div>
+        </div>
         <span style="display: inline-block;width: 120px;height: 400px;">
           <a-menu style="height:100%;border-top: 1px solid #eaeaea;overflow: auto" v-model="selUser" @select="selsectUser">
-            <a-menu-item v-for="item in users" :key="item.id" >{{item.userName}}</a-menu-item>
+            <a-menu-item v-for="item in users" :key="item._id" >{{item.userName}}</a-menu-item>
           </a-menu>
         </span>
         <span style="display: inline-block;width: calc(100% - 120px);height: 400px;float: right">
@@ -97,7 +103,7 @@
     currentUser(){
       if(this.selUser[0]){
         // debugger
-        const user = this.users.find(user=>user.id == this.selUser[0])
+        const user = this.users.find(user=>user._id == this.selUser[0])
         return user
       }else{
         return {email:''}
@@ -123,8 +129,8 @@
   },
   watch:{
     users(value){
-      this.selUser[0]=value[0].id
-      this.selsectUser({key:value[0].id})
+      this.selUser[0]=value[0]._id
+      this.selsectUser({key:value[0]._id})
     }
   }
 

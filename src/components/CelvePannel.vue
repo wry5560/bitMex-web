@@ -3,8 +3,8 @@
     <div>
       <template v-if="currentCelve && currentCelve.state === true && !isEdit">
         <a-row style="padding: 12px 24px;padding-bottom: 4px" :gutter="16">
-          <a-col :lg="12"><a-button  style="width:100%" @click="stop">停止策略</a-button></a-col>
-          <a-col :lg="12"><a-button style="width:100%"  type="primary" @click="toEdit">修改策略</a-button></a-col>
+          <a-col :lg="24"><a-button  style="width:100%" @click="stop">停止策略</a-button></a-col>
+<!--          <a-col :lg="12"><a-button style="width:100%"  type="primary" @click="toEdit">修改策略</a-button></a-col>-->
         </a-row>
         <a-row style="padding: 8px 24px;" :gutter="48">
           <a-col :lg="12"><b>运行参数：</b></a-col>

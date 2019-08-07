@@ -1,8 +1,8 @@
 import { axios } from './lib/request'
-import {settings} from '../config/dev-setting'
-const {isTest} = settings
+import { settings } from '../config/dev-setting'
+const { isTest } = settings
 
-const baseUrl = isTest ? 'http://localhost:3001' :  'http://47.240.17.43:3001'
+const baseUrl = isTest ? 'http://localhost:3001' : 'http://47.240.17.43:3001'
 // const baseUrl = 'http://47.245.26.247:3001'
 
 export const reqUsers = async function (userName) {
@@ -107,11 +107,56 @@ export const postLog = async function (data) {
     url: baseUrl + '/logApi',
     method: 'post',
     data: {
-      log:JSON.stringify(data)
+      log: JSON.stringify(data)
     }
   }
   try {
     await axios(options)
+  } catch (err) {
+    console.log(err)
+  }
+}
+
+export const login = async function (data) {
+  // debugger
+  const options = {
+    url: baseUrl + '/login',
+    method: 'post',
+    data: data
+  }
+  try {
+    const res = await axios(options)
+    return res
+  } catch (err) {
+    console.log(err)
+  }
+}
+
+export const updatePassword = async function (data) {
+  // debugger
+  const options = {
+    url: baseUrl + '/login/password',
+    method: 'post',
+    data: data
+  }
+  try {
+    const res = await axios(options)
+    return res
+  } catch (err) {
+    console.log(err)
+  }
+}
+
+export const permission = async function (data) {
+  // debugger
+  const options = {
+    url: baseUrl + '/permission',
+    method: 'post',
+    data: data
+  }
+  try {
+    const res = await axios(options)
+    return res
   } catch (err) {
     console.log(err)
   }

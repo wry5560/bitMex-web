@@ -34,8 +34,8 @@ import moment from 'moment'
 import 'moment/locale/zh-cn'
 
 import { reqUsers, reqTradeHistory, reqWalletHistory, reqOrders, postOrders, postLevelPriceCelve, getLevelPriceCelve } from '@/api'
-import {settings} from '../../config/dev-setting'
-const {isTest} = settings
+import { settings } from '../../config/dev-setting'
+const { isTest } = settings
 
 // const isTest=false
 export default {
@@ -55,6 +55,7 @@ export default {
       lockReconnect: false,
       users: [],
       celves: [],
+      getCelvesInterval: null,
       userData: {
         margin: {
           walletBalance: null,
@@ -98,10 +99,13 @@ export default {
     this.initWebSocket()
     this.getUsers()
     const _this = this
-    setInterval(() => { _this.getCelves('running') }, 2000)
+    this.getCelvesInterval = setInterval(() => { _this.getCelves('running') }, 2000)
   },
   destroyed () {
     this.websock.close() // 离开路由之后断开websocket连接
+    clearInterval(this.setIntervalPingPong)
+    clearInterval(this.getCelvesInterval)
+    clearTimeout(this.setTimeoutReset)
   },
   methods: {
     moment,
@@ -130,7 +134,12 @@ export default {
 
       // console.log(typeof (op) ,op)
       this.setIntervalWs()
-      if (this.currentUser.userName) this.createdUserWs()
+      if (this.currentUser.userName) {
+        this.getOrders()
+        this.getWalletHistory()
+        this.getTradeHistory()
+        this.createdUserWs()
+      }
       // let actions = { 'test': '12345' }
       // this.websocketsend(JSON.stringify(actions))
     },
@@ -201,7 +210,7 @@ export default {
       const allData = JSON.parse(d)
       if (allData.length && allData.length > 0 && allData[1] == 'nomalInfos') {
         const data = allData[3]
-        if (typeof(data.table) == 'undefined') {
+        if (typeof (data.table) === 'undefined') {
           console.log(data)
           return
         }
@@ -321,7 +330,7 @@ export default {
         }
       } else if (allData.length && allData.length > 0 && allData[1] == this.currentUser.email) {
         const data = allData[3]
-        if (typeof(data.table) == 'undefined') {
+        if (typeof (data.table) === 'undefined') {
           console.log(data)
           return
         }
@@ -360,7 +369,7 @@ export default {
             console.log('transact', data.action, data.data)
             break
           case 'margin':
-            console.log('margin',data.action, data.data)
+            console.log('margin', data.action, data.data)
             this.userData.margin = {
               ...this.userData.margin,
               ...data.data[0] }
@@ -426,7 +435,18 @@ export default {
     async getUsers () {
       try {
         console.log('get users!')
-        this.users = await reqUsers()
+        const accounts = await reqUsers()
+        if (this.$store.state.user.userName === 'admin') {
+          this.users = accounts
+        } else {
+          // const aaa = this.$store.state.user.accounts
+          // debugger
+          this.$store.state.user.accounts.forEach(account => {
+            // debugger
+            const index = accounts.findIndex(item => item.email === account)
+            if (index > -1) this.users.push(accounts[index])
+          })
+        }
       } catch (err) {
         console.log(err)
       }
@@ -478,11 +498,14 @@ export default {
       }
     },
     changeCurrentUser (id) {
-      const user = this.users.find(user => user.id == id)
+      const user = this.users.find(user => user._id == id)
       if (user) {
         this.toCancelUser = this.currentUser
         this.currentUser = user
         this.cancelUserWs()
+        this.orderData = []
+        this.orderHistory = []
+        this.executionData = []
         this.getOrders()
         this.getWalletHistory()
         this.getTradeHistory()
