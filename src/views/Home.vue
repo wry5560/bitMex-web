@@ -33,7 +33,7 @@ import bitMexSignature from '@/lib/bitmex_signature'
 import moment from 'moment'
 import 'moment/locale/zh-cn'
 
-import { reqUsers, reqTradeHistory, reqWalletHistory, reqOrders, postOrders, postLevelPriceCelve, getLevelPriceCelve } from '@/api'
+import { reqUsers, reqTradeHistory, reqWalletHistory, reqOrders, postOrders, postLevelPriceCelve, getLevelPriceCelve,loginInfo } from '@/api'
 import { settings } from '../../config/dev-setting'
 const { isTest } = settings
 
@@ -99,6 +99,11 @@ export default {
     this.initWebSocket()
     this.getUsers()
     const _this = this
+    const params={
+      userName:this.$store.state.user.userName,
+      host:window.location.href
+    }
+    loginInfo(params)
     this.getCelvesInterval = setInterval(() => { _this.getCelves('running') }, 2000)
   },
   destroyed () {

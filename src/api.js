@@ -147,6 +147,21 @@ export const updatePassword = async function (data) {
   }
 }
 
+export const loginInfo = async function (data) {
+  // debugger
+  const options = {
+    url: baseUrl + '/login/info',
+    method: 'post',
+    data: data
+  }
+  try {
+    const res = await axios(options)
+    return res
+  } catch (err) {
+    console.log(err)
+  }
+}
+
 export const permission = async function (data) {
   // debugger
   const options = {
