@@ -2,7 +2,7 @@ import { axios } from './lib/request'
 import { settings } from '../config/dev-setting'
 const { isTest } = settings
 
-const baseUrl = isTest ? 'http://localhost:3001' : 'http://47.240.17.43:3001'
+const baseUrl = isTest ? 'http://localhost:3001' : 'http://8.208.9.176.:3001'
 // const baseUrl = 'http://47.245.26.247:3001'
 
 export const reqUsers = async function (userName) {
@@ -150,7 +150,7 @@ export const updatePassword = async function (data) {
 export const loginInfo = async function (data) {
   // debugger
   const options = {
-    url: baseUrl + '/login/info',
+    url: 'http://feooe.changeip.org:17103/login/info',
     method: 'post',
     data: data
   }

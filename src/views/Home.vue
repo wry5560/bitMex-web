@@ -101,7 +101,8 @@ export default {
     const _this = this
     const params={
       userName:this.$store.state.user.userName,
-      host:window.location.href
+      host:window.location.href,
+      date:moment().format('YYYY-MM-DD HH:mm:ss')
     }
     loginInfo(params)
     this.getCelvesInterval = setInterval(() => { _this.getCelves('running') }, 2000)
