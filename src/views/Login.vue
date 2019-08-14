@@ -1,6 +1,6 @@
 <template>
   <div class="main">
-    <div class="title"><b>自动交易系统 登录</b></div>
+    <div class="title"><b>系统</b></div>
     <a-form
       class="user-layout-login"
       ref="formLogin"
@@ -9,7 +9,7 @@
     >
       <a-form-item
             fieldDecoratorId="username"
-            :fieldDecoratorOptions="{rules: [{ required: true, message: '请输入帐户名' }],initialValue: 'bitmex', validateTrigger: 'change'}"
+            :fieldDecoratorOptions="{rules: [{ required: true, message: '请输入帐户名' }],initialValue: 'persion', validateTrigger: 'change'}"
           >
             <a-input size="large" type="text" placeholder="请输入帐户名">
               <a-icon slot="prefix" type="user" :style="{ color: 'rgba(0,0,0,.25)' }"/>

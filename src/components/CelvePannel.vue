@@ -27,7 +27,7 @@
             层级价差：<div style="float: right"><b>{{this.currentCelve.levelPrice}}</b></div>
           </a-col>
           <a-col :lg="12">
-            总层级：<div style="float: right"><b>{{this.currentCelve.level}}</b></div>
+            平仓层级：<div style="float: right"><b>{{this.currentCelve.level}}</b></div>
           </a-col>
         </a-row>
         <div style="padding: 8px 24px;"><b>运行日志：</b></div>
