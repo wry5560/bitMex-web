@@ -632,8 +632,30 @@
                 ordType:'Limit',
                 clOrdID:item._id + item.currentLevel + moment().format('HHmmss')
               })
+            }else if(side == 'Sell'){
+              params.orders.push({
+                username:item.username[0],
+                symbol:'XBTUSD',
+                // side:celve.side,
+                side:'Buy',
+                orderQty:item.qt,
+                price:firstTime ? item.nextPrice : side=='Buy' ? item.nextPrice - item.levelPrice : item.currentPrice,
+                ordType:'Limit',
+                clOrdID:item._id + item.currentLevel + moment().format('HHmmss')
+              })
             }
             if(item.currentLevel > 1 - item.level){
+              params.orders.push({
+                username:item.username[0],
+                symbol:'XBTUSD',
+                // side:celve.side,
+                side:'Sell',
+                orderQty:item.qt,
+                price:firstTime ? item.prePrice :  side=='Buy' ? item.currentPrice : item.prePrice + item.levelPrice ,
+                ordType:'Limit',
+                clOrdID:item._id + item.currentLevel + moment().format('HHmmss')
+              })
+            }else if(side == 'Buy'){
               params.orders.push({
                 username:item.username[0],
                 symbol:'XBTUSD',
@@ -662,6 +684,7 @@
             try{
               console.log('开单参数：',JSON.stringify(params))
               const res = await postOrders(params)
+              console.log('res:',res)
               // this.orderLocks[celve._id] = false
               if (res.error) {
                 item.actions.unshift(res.error)
@@ -675,6 +698,7 @@
                 // }
 
               } else {
+
                 if(res.length){
                   res.forEach(i=>{
                     const message = i.orderQty
@@ -683,6 +707,7 @@
                     item.actions.unshift(message)
                     console.log(message)
                   })
+
                 }else{
                   item.actions.unshift(JSON.stringify(res))
                   this.positionLocks[item.username[0]] = false
