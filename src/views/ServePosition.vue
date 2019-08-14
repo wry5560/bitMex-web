@@ -345,9 +345,11 @@
 
              if(item.currentLevel == item.level && item.nextPrice >= this.currentPrice){
                this.zhiSun(item,'Sell')
+               return
              }
-             if((0-item.currentLevel) == item.level && item.nextPrice <= this.currentPrice){
+             if((0-item.currentLevel) == item.level && item.prePrice <= this.currentPrice){
                this.zhiSun(item,'Buy')
+               return
              }
 
              const userPosition = this.positions.find(i=>i.username==item.username[0]).position
@@ -535,16 +537,17 @@
           item.postType = 'stop'
           try {
             await postLevelPriceCelve(item)
+            this.positionLocks[item.username[0]] = false
             const newCelve = {}
             debugger
             newCelve.username = item.username[0]
             newCelve.qt = item.qt
             newCelve.level = item.level
             newCelve.levelPrice = item.levelPrice
-            newCelve.startPrice = item.nextPrice
-            newCelve.currentPrice = item.startPrice
-            newCelve.prePrice = item.currentPrice + item.levelPrice
-            newCelve.nextPrice = item.currentPrice - item.levelPrice
+            newCelve.startPrice = side=='Buy' ? item.prePrice:item.nextPrice
+            newCelve.currentPrice = newCelve.startPrice
+            newCelve.prePrice = newCelve.currentPrice + newCelve.levelPrice
+            newCelve.nextPrice = newCelve.currentPrice - newCelve.levelPrice
             newCelve.postType = 'insert'
             delete newCelve.state
             await postLevelPriceCelve(newCelve)
@@ -618,7 +621,7 @@
             const params={
               orders:[]
             }
-            if(item.currentLevel < item.level){
+            if(item.currentLevel < item.level-1){
               params.orders.push({
                 username:item.username[0],
                 symbol:'XBTUSD',
@@ -630,7 +633,7 @@
                 clOrdID:item._id + item.currentLevel + moment().format('HHmmss')
               })
             }
-            if(item.currentLevel > 0 - item.level){
+            if(item.currentLevel > 1 - item.level){
               params.orders.push({
                 username:item.username[0],
                 symbol:'XBTUSD',
