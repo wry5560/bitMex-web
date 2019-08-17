@@ -19,7 +19,7 @@ export default new Router({
     {
       path: '/servePosition',
       name: 'servePosition',
-      component: () => import(/* webpackChunkName: "about" */ './views/ServePosition.vue')
+      component: () => import(/* webpackChunkName: "about" */ './views/ServePosition--bf.vue')
     },
     {
       path: '/login',

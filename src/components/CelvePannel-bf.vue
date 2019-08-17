@@ -27,7 +27,7 @@
             层级价差：<div style="float: right"><b>{{this.currentCelve.levelPrice}}</b></div>
           </a-col>
           <a-col :lg="12">
-            总层级：<div style="float: right"><b>{{this.currentCelve.level}}</b></div>
+            平仓层级：<div style="float: right"><b>{{this.currentCelve.level}}</b></div>
           </a-col>
           <a-col :lg="12">
             总成交次数：<div style="float: right"><b>{{this.currentCelve.totalTimes}}</b></div>
@@ -90,12 +90,12 @@
               </a-form-item>
             </a-col>
             <a-col :lg="24">
-              <a-form-item label="开单层级" :labelCol="{ span: 6 }" :wrapperCol="{ span: 18 }">
+              <a-form-item label="平仓层级" :labelCol="{ span: 6 }" :wrapperCol="{ span: 18 }">
                 <a-input-number
-                  placeholder="请输入开单层级"
+                  placeholder="请输入平仓层级"
                   :min="1"
                   :precision="0"
-                  v-decorator="['level',{rules: [{ required: true, message: '请输入开单层级',type:'number'}],initialValue:currentCelve ? currentCelve.level : 1}]"
+                  v-decorator="['level',{rules: [{ required: true, message: '请输入平仓层级',type:'number'}],initialValue:currentCelve ? currentCelve.level : 1}]"
                   style="width:100%"
                 />
               </a-form-item>

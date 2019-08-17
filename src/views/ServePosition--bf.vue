@@ -338,9 +338,20 @@
         },
        levelPriceCelve(){
          this.celves.forEach(async item=>{
+           //新策略，挂单
            if(item.firstTime){
                  this.doMulitCelve(item,null,true)
                }else{
+
+             if(item.currentLevel == item.level && item.nextPrice >= this.currentPrice){
+               this.zhiSun(item,'Sell')
+               return
+             }
+             if((0-item.currentLevel) == item.level && item.prePrice <= this.currentPrice){
+               this.zhiSun(item,'Buy')
+               return
+             }
+
              const userPosition = this.positions.find(i=>i.username==item.username[0]).position
              switch (true) {
                case ( userPosition >= item.qt * (item.currentLevel+ 1)):
@@ -421,7 +432,7 @@
             return  'wait'
           }else{
             // console.log('发送平仓命令！')
-            console.log('发送空仓命令！')
+            console.log('发送平仓命令！')
             // debugger
             this.orderLocks[celve._id] = true
             const params={
@@ -443,6 +454,108 @@
               // this.orderLocks[celve._id] = false
               return {error:{message:e}}
             }
+          }
+        },
+        async zhiSun(item,side){
+          console.log('this Position:',this.positions)
+          console.log('item:',item)
+          // console.log('userPosition:',userPosition)
+          if(this.positionLocks[item.username[0]]) {
+            // debugger
+            console.log('wait createOrder locked! wait!')
+            return
+          }else{
+            this.positionLocks[item.username[0]]= true
+            console.log('挂单锁',this.positionLocks)
+            console.time("delete");
+            // if(item.currentLevel > 1){
+            // if(!firstTime){
+            try{
+              console.log('撤单执行！',this.positionLocks)
+              const delRes = await this.delAllOrder(item)
+              if(delRes.error){
+                console.log('撤单错误：',delRes.error.message)
+                this.positionLocks[item.username[0]]= false
+                return
+              }
+              console.log('已发送撤单命令：',delRes)
+            }catch (e) {
+              console.log('撤单错误：',e)
+              this.positionLocks[item.username[0]]= false
+              return
+            }
+            // }
+            // }
+            console.timeEnd("delete");
+            console.time("挂单")
+            console.log('发送开单命令！')
+            // debugger
+            const userPosition = this.positions.find(i=>i.username==item.username[0]).position
+            const params={
+              username:item.username[0],
+              symbol:'XBTUSD',
+              postType: 'closePosition',
+              // side:celve.side,
+              // side:side ,
+              // orderQty:userPosition,
+              // price: side=='Buy' ? (this.currentPrice + 100):(this.currentPrice - 100 ) ,
+              // ordType:'Limit',
+              // clOrdID:item._id + item.currentLevel + moment().format('HHmmss')
+            }
+            try{
+              console.log('开单参数：',JSON.stringify(params))
+              const res = await postOrders(params)
+              // this.orderLocks[celve._id] = false
+
+              console.log('开单res:',res)
+              if (res.error) {
+                item.actions.unshift(res.error)
+                this.positionLocks[item.username[0]] = false
+                return
+              } else {
+                if(res.orderID){
+                    const message = res.orderQty
+                      ? '止损 ' + res.orderQty + '... ' + '价格 ' + res.price + '... ' + ' 时间 ' + moment().format('YYYY-MM-DD HH:mm:ss')
+                      : JSON.stringify(res) + moment().format('YYYY-MM-DD HH:mm:ss')
+                    item.actions.unshift(message)
+                    console.log(message)
+                }else{
+                  item.actions.unshift(JSON.stringify(res))
+                  this.positionLocks[item.username[0]] = false
+                  return
+                }
+              }
+            }catch (e) {
+              console.log('挂单错误：',e)
+              this.positionLocks[item.username[0]] = false
+              return {error:{message:e}}
+            }
+          }
+          console.timeEnd("挂单");
+          //更新策略及日志
+          console.time("更新策略")
+          item.postType = 'stop'
+          item.totalTimes += 1
+          try {
+            await postLevelPriceCelve(item)
+            this.positionLocks[item.username[0]] = false
+            const newCelve = {}
+            // debugger
+            newCelve.username = item.username[0]
+            newCelve.qt = item.qt
+            newCelve.level = item.level
+            newCelve.levelPrice = item.levelPrice
+            newCelve.startPrice = side=='Buy' ? item.prePrice:item.nextPrice
+            newCelve.currentPrice = newCelve.startPrice
+            newCelve.prePrice = newCelve.currentPrice + newCelve.levelPrice
+            newCelve.nextPrice = newCelve.currentPrice - newCelve.levelPrice
+            newCelve.totalTimes = 0
+            newCelve.postType = 'insert'
+            delete newCelve.state
+            await postLevelPriceCelve(newCelve)
+            this.getCelves('running')
+          } catch (e) {
+            console.log(e)
           }
         },
         async delAllOrder(celve){
@@ -510,7 +623,18 @@
             const params={
               orders:[]
             }
-            if(item.currentLevel < item.level){
+            if(item.currentLevel < item.level-1){
+              params.orders.push({
+                username:item.username[0],
+                symbol:'XBTUSD',
+                // side:celve.side,
+                side:'Buy',
+                orderQty:item.qt,
+                price:firstTime ? item.nextPrice : side=='Buy' ? item.nextPrice - item.levelPrice : item.currentPrice,
+                ordType:'Limit',
+                clOrdID:item._id + item.currentLevel + moment().format('HHmmss')
+              })
+            }else if(side == 'Sell'){
               params.orders.push({
                 username:item.username[0],
                 symbol:'XBTUSD',
@@ -522,7 +646,18 @@
                 clOrdID:item._id + item.currentLevel + moment().format('HHmmss')
               })
             }
-            if(item.currentLevel > 0 - item.level){
+            if(item.currentLevel > 1 - item.level){
+              params.orders.push({
+                username:item.username[0],
+                symbol:'XBTUSD',
+                // side:celve.side,
+                side:'Sell',
+                orderQty:item.qt,
+                price:firstTime ? item.prePrice :  side=='Buy' ? item.currentPrice : item.prePrice + item.levelPrice ,
+                ordType:'Limit',
+                clOrdID:item._id + item.currentLevel + moment().format('HHmmss')
+              })
+            }else if(side == 'Buy'){
               params.orders.push({
                 username:item.username[0],
                 symbol:'XBTUSD',
@@ -551,6 +686,7 @@
             try{
               console.log('开单参数：',JSON.stringify(params))
               const res = await postOrders(params)
+              console.log('res:',res)
               // this.orderLocks[celve._id] = false
               if (res.error) {
                 item.actions.unshift(res.error)
@@ -564,6 +700,7 @@
                 // }
 
               } else {
+
                 if(res.length){
                   res.forEach(i=>{
                     const message = i.orderQty
@@ -572,6 +709,7 @@
                     item.actions.unshift(message)
                     console.log(message)
                   })
+
                 }else{
                   item.actions.unshift(JSON.stringify(res))
                   this.positionLocks[item.username[0]] = false
@@ -600,6 +738,7 @@
               item.currentPrice = side=='Buy' ? item.currentPrice -  item.levelPrice : item.currentPrice +  item.levelPrice
               item.prePrice =   side=='Buy' ? item.prePrice -  item.levelPrice : item.prePrice +  item.levelPrice
               item.nextPrice =   side=='Buy' ? item.nextPrice -  item.levelPrice : item.nextPrice +  item.levelPrice
+              item.totalTimes += 1
             }
             delete item.state
             item.postType = 'update'
