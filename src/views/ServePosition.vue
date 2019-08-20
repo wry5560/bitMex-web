@@ -36,7 +36,7 @@
   import bitMexSignature from '@/lib/bitmex_signature'
   import moment from 'moment'
   import 'moment/locale/zh-cn'
-  import { reqUsers,  reqOrders, postOrders, postLevelPriceCelve, getLevelPriceCelve } from '@/api'
+  import { reqUsers,  reqOrders, postOrders, postLevelPriceCelve, getLevelPriceCelve,websocketLog } from '@/api'
 
   import {settings} from '../../config/dev-setting'
   const {isTest} = settings
@@ -121,6 +121,7 @@
         initWebSocket () { // 初始化weosocket
           if (!this.websock) {
             console.log('建立websocket连接')
+            websocketLog('建立websocket连接')
             const wsuri =isTest ?  'wss://testnet.bitmex.com/realtimemd' : 'wss://www.bitmex.com/realtimemd'
             // const wsuri = 'wss://www.bitmex.com/realtimemd'
             this.websock = new WebSocket(wsuri)
@@ -130,10 +131,12 @@
             this.websock.onclose = this.websocketclose
           } else {
             console.log('websocket已存在')
+            websocketLog('websocket已存在')
           }
         },
         websocketonopen () { // 连接建立之后执行send方法发送数据
           console.log('websocket已连接')
+          websocketLog('websocket已连接')
           // const op = { 'op': 'subscribe', 'args': ['trade:XBTUSD'] }
           // this.websocketsend(JSON.stringify(op))
           // this.websock.send(op)
@@ -154,6 +157,7 @@
         websocketonerror (e) { // 连接建立失败重连
           clearInterval(this.setIntervalPingPong)
           console.log('链接错误:', e)
+          websocketLog('链接错误'+ JSON.stringify(e))
           this.websock.close()
           this.websock = null
           this.reconnect()
@@ -185,6 +189,7 @@
         },
         websocketclose (e) { // 关闭
           console.log('断开连接', e)
+          websocketLog('断开连接')
         },
         setIntervalWs () {
           const _this = this

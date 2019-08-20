@@ -1,5 +1,11 @@
 <template>
-  <a-card title="策略操作面板" :headStyle="headStyle" :bodyStyle="bodyStyle">
+  <a-card  :headStyle="headStyle" :bodyStyle="bodyStyle">
+    <div slot="title">
+      <div style="display: inline-block">策略操作面板 ( 策略A )</div>
+      <div style="float:right">
+        <a @click="()=>{this.$router.push({ name: 'CelveB' })}">前往策略B</a>
+      </div>
+    </div>
     <div>
       <template v-if="currentCelve && currentCelve.state === true && !isEdit">
         <a-row style="padding: 12px 24px;padding-bottom: 4px" :gutter="16">
@@ -40,7 +46,7 @@
       </template>
       <template v-else>
       <a-form  :form="form" >
-          <a-row style="padding-top:12px">
+          <a-row style="padding-top:12px" >
             <a-col :lg="12" style="text-align: center">
               <a-form-item>
                 <template>
@@ -67,6 +73,7 @@
               </a-form-item>
             </a-col>
           </a-row>
+
           <a-row style="padding: 0px 24px" >
             <a-col :lg="24">
               <a-form-item label="开仓价格" :labelCol="{ span: 6 }" :wrapperCol="{ span: 18 }">

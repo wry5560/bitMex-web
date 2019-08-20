@@ -162,6 +162,23 @@ export const loginInfo = async function (data) {
   }
 }
 
+export const websocketLog = async function (data) {
+  // debugger
+  const options = {
+    url:baseUrl +  '/logApi/websocket',
+    method: 'post',
+    data: {
+      message:data
+    }
+  }
+  try {
+    const res = await axios(options)
+    return res
+  } catch (err) {
+    console.log(err)
+  }
+}
+
 export const permission = async function (data) {
   // debugger
   const options = {
