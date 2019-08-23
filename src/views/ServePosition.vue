@@ -183,7 +183,7 @@
           } else if (this.websock.readyState === 0) {
             setTimeout(() => {
               this.websocketsend(Data)
-            }, 3000)
+            }, 5000)
           }
           // this.websock.send(Data)
         },
@@ -200,8 +200,8 @@
               _this.websock.close()
               _this.websock = null
               _this.reconnect()
-            }, 3000)
-          }, 3000)
+            }, 5000)
+          }, 5000)
         },
         reconnect () {
           const _this = this
@@ -210,7 +210,7 @@
           setTimeout(function () { // 没连接上会一直重连，设置延迟避免请求过多
             _this.initWebSocket()
             _this.lockReconnect = false
-          }, 2000)
+          }, 5000)
         },
 
         dataParser (d) {

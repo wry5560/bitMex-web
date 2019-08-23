@@ -4,7 +4,7 @@
         <div slot="title">
           <div style="display: inline-block">用户面板</div>
           <div style="float:right">
-            <a href="https://www.bitmex.com/register/03ZFb7" target="_blank">注册链接</a>
+            <a href="https://www.bitmex.com/register/ZgtBTj" target="_blank">注册链接</a>
           </div>
         </div>
         <span style="display: inline-block;width: 120px;height: 400px;">
@@ -75,15 +75,15 @@
 
 <script>
 
-  import moment from 'moment'
-  import 'moment/locale/zh-cn'
+import moment from 'moment'
+import 'moment/locale/zh-cn'
 
-  export default {
+export default {
   name: 'userPannel',
-  props:{
-    users:Array,
-    marginData:Object,
-    walletHistory:Array
+  props: {
+    users: Array,
+    marginData: Object,
+    walletHistory: Array
 
   },
   data () {
@@ -96,25 +96,25 @@
       headStyle: {
         'text-align': 'left'
       },
-      selUser:[]
+      selUser: []
     }
   },
-  computed:{
-    currentUser(){
-      if(this.selUser[0]){
+  computed: {
+    currentUser () {
+      if (this.selUser[0]) {
         // debugger
-        const user = this.users.find(user=>user._id == this.selUser[0])
+        const user = this.users.find(user => user._id == this.selUser[0])
         return user
-      }else{
-        return {email:''}
+      } else {
+        return { email: '' }
       }
     }
   },
-  methods:{
+  methods: {
     moment,
-    selsectUser({key}){
+    selsectUser ({ key }) {
       console.log(key)
-      this.$emit('select',key)
+      this.$emit('select', key)
     },
     rowClass (record, index) {
       let classNames = ''
@@ -127,10 +127,10 @@
       return classNames
     }
   },
-  watch:{
-    users(value){
-      this.selUser[0]=value[0]._id
-      this.selsectUser({key:value[0]._id})
+  watch: {
+    users (value) {
+      this.selUser[0] = value[0]._id
+      this.selsectUser({ key: value[0]._id })
     }
   }
 
