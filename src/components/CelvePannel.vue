@@ -1,12 +1,13 @@
 <template>
   <a-card  :headStyle="headStyle" :bodyStyle="bodyStyle">
     <div slot="title">
-      <div style="display: inline-block">策略操作面板 ( 策略A )</div>
-      <div style="float:right">
-        <a @click="()=>{this.$router.push({ name: 'CelveB' })}">前往策略B</a>
-      </div>
+<!--      <div style="display: inline-block">策略操作面板 ( 策略A )</div>-->
+      <div style="display: inline-block">策略操作面板</div>
+<!--      <div style="float:right">-->
+<!--        <a @click="()=>{this.$router.push({ name: 'CelveB' })}">前往策略B</a>-->
+<!--      </div>-->
     </div>
-    <div>
+    <div class="celve">
       <template v-if="currentCelve && currentCelve.state === true && !isEdit">
         <a-row style="padding: 12px 24px;padding-bottom: 4px" :gutter="16">
           <a-col :lg="24"><a-button  style="width:100%" @click="stop">停止策略</a-button></a-col>
@@ -14,7 +15,7 @@
         </a-row>
         <a-row style="padding: 8px 24px;" :gutter="48">
           <a-col :lg="12"><b>运行参数：</b></a-col>
-          <a-col :lg="12">方向：<div style="float: right"><b>{{this.currentCelve.side}}</b></div></a-col>
+          <a-col :lg="12"><div style="float: right"><b>{{levelStopType}}</b></div></a-col>
         </a-row>
         <a-row style="padding: 0 24px;" :gutter="48">
           <a-col :lg="12">
@@ -36,47 +37,66 @@
             总层级：<div style="float: right"><b>{{this.currentCelve.level}}</b></div>
           </a-col>
           <a-col :lg="12">
+            平仓（减仓）层级：<div style="float: right"><b>{{this.currentCelve.stopLevel}}</b></div>
+          </a-col>
+          <a-col :lg="12">
             总成交次数：<div style="float: right"><b>{{this.currentCelve.totalTimes}}</b></div>
           </a-col>
         </a-row>
         <div style="padding: 8px 24px;"><b>运行日志：</b></div>
         <div style="padding: 0 24px;height: 190px;overflow: auto" ref="log">
-          <div v-for="item in currentCelve.actions">{{item}}</div>
+          <div v-for="(item,index) in currentCelve.actions" :key="index">{{item}}</div>
         </div>
       </template>
       <template v-else>
       <a-form  :form="form" >
           <a-row style="padding-top:12px" >
-            <a-col :lg="12" style="text-align: center">
-              <a-form-item>
-                <template>
-                  <a-radio-group name="radioGroup1"
-                                 v-decorator="['type',{initialValue:currentCelve ? currentCelve.type : 'Limit'}]"
-                                 @change="changeType"
-                                 :disabled="isEdit">
-                    <a-radio value="Limit">限价单</a-radio>
-                    <a-radio value="Market">市价单</a-radio>
-                  </a-radio-group>
-                </template>
-              </a-form-item>
-            </a-col>
-            <a-col :lg="12" style="text-align: center" >
-              <a-form-item>
-              <template>
-                <a-radio-group name="radioGroup2"
-                               v-decorator="['side',{initialValue:currentCelve ? currentCelve.side : 'Buy'}]"
-                               :disabled="isEdit">
-                  <a-radio value="Buy">多单</a-radio>
-                  <a-radio value="Sell">空单</a-radio>
-                </a-radio-group>
-              </template>
-              </a-form-item>
-            </a-col>
-          </a-row>
+<!--            <a-col :lg="6" style="text-align: center">-->
+<!--              平仓策略：-->
+<!--            </a-col>-->
+            <a-col :lg="24" style="text-align: center">
+                            <a-form-item>
+                              <template>
+                                <a-radio-group name="radioGroup1"
+                                               v-decorator="['levelStopType',{initialValue:currentCelve ? currentCelve.levelStopType : 'normal'}]"
 
+                                               :disabled="isEdit">
+                                  <a-radio value="normal">普通模式</a-radio>
+                                  <a-radio value="reduce">减仓模式</a-radio>
+                                  <a-radio value="stop">平仓模式</a-radio>
+                                </a-radio-group>
+                              </template>
+                            </a-form-item>
+            </a-col>
+<!--            <a-col :lg="12" style="text-align: center">-->
+<!--              <a-form-item>-->
+            <!--                <template>-->
+            <!--                  <a-radio-group name="radioGroup1"-->
+            <!--                                 v-decorator="['type',{initialValue:currentCelve ? currentCelve.type : 'Limit'}]"-->
+            <!--                                 @change="changeType"-->
+            <!--                                 :disabled="isEdit">-->
+            <!--                    <a-radio value="Limit">限价单</a-radio>-->
+            <!--                    <a-radio value="Market">市价单</a-radio>-->
+            <!--                  </a-radio-group>-->
+            <!--                </template>-->
+<!--              </a-form-item>-->
+<!--            </a-col>-->
+<!--            <a-col :lg="12" style="text-align: center" >-->
+<!--              <a-form-item>-->
+<!--              <template>-->
+<!--                <a-radio-group name="radioGroup2"-->
+<!--                               v-decorator="['side',{initialValue:currentCelve ? currentCelve.side : 'Buy'}]"-->
+<!--                               :disabled="isEdit">-->
+<!--                  <a-radio value="Buy">多单</a-radio>-->
+<!--                  <a-radio value="Sell">空单</a-radio>-->
+<!--                </a-radio-group>-->
+<!--              </template>-->
+<!--              </a-form-item>-->
+<!--            </a-col>-->
+          </a-row>
           <a-row style="padding: 0px 24px" >
             <a-col :lg="24">
-              <a-form-item label="开仓价格" :labelCol="{ span: 6 }" :wrapperCol="{ span: 18 }">
+              <a-form-item label="开仓价格" :labelCol="{ span: 7 }" :wrapperCol="{ span: 17 }">
                 <a-input-number
                   placeholder="请输入开仓价格"
                   :min="1"
@@ -87,7 +107,7 @@
               </a-form-item>
             </a-col>
             <a-col :lg="24">
-              <a-form-item label="仓位" :labelCol="{ span: 6 }" :wrapperCol="{ span: 18 }">
+              <a-form-item label="仓位" :labelCol="{ span: 7 }" :wrapperCol="{ span: 17 }">
                 <a-input-number
                   placeholder="请输入仓位"
                   :min="1"
@@ -97,7 +117,7 @@
               </a-form-item>
             </a-col>
             <a-col :lg="24">
-              <a-form-item label="开单层级" :labelCol="{ span: 6 }" :wrapperCol="{ span: 18 }">
+              <a-form-item label="开单层级" :labelCol="{ span: 7 }" :wrapperCol="{ span: 17 }">
                 <a-input-number
                   placeholder="请输入开单层级"
                   :min="1"
@@ -108,7 +128,18 @@
               </a-form-item>
             </a-col>
             <a-col :lg="24">
-              <a-form-item label="层级价差" :labelCol="{ span: 6 }" :wrapperCol="{ span: 18 }">
+              <a-form-item label="减仓（平仓）层级" :labelCol="{ span: 7 }" :wrapperCol="{ span: 17 }">
+                <a-input-number
+                  placeholder="请输入减仓（平仓）层级"
+                  :min="0"
+                  :precision="0"
+                  v-decorator="['stopLevel',{rules: [{ required: true, message: '请输入减仓（平仓）层级',type:'number'}],initialValue:currentCelve ? currentCelve.stopLevel : 0}]"
+                  style="width:100%"
+                />
+              </a-form-item>
+            </a-col>
+            <a-col :lg="24">
+              <a-form-item label="层级价差" :labelCol="{ span: 7 }" :wrapperCol="{ span: 17 }">
                 <a-input-number
                   placeholder="请输入层级价差"
                   :min="1"
@@ -164,6 +195,21 @@ export default {
         }
       }
       return null
+    },
+    levelStopType () {
+      let value = ''
+      switch (this.currentCelve.levelStopType) {
+        case 'normal':
+          value = '普通模式'
+          break
+        case 'reduce':
+          value = '减仓模式'
+          break
+        case 'stop':
+          value = '平仓模式'
+          break
+      }
+      return value
     }
   },
 
@@ -171,6 +217,9 @@ export default {
     changeType (e) {
       this.type = e.target.value
     },
+    // changeType (e) {
+    //   this.type = e.target.value
+    // },
     start () {
       this.form.validateFields((err, values) => {
         if (!err) {
@@ -184,10 +233,10 @@ export default {
     toEdit () {
       this.isEdit = true
     },
-    updateCelve(){
+    updateCelve () {
       this.form.validateFields((err, values) => {
         if (!err) {
-          const data={
+          const data = {
             ...this.currentCelve,
             ...values
           }
@@ -203,6 +252,10 @@ export default {
 }
 </script>
 
-<style scoped>
-
+<style lang="scss" scoped>
+.celve{
+  .ant-form-item{
+    margin-bottom: 14px;
+  }
+}
 </style>
