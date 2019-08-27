@@ -94,7 +94,7 @@ service.interceptors.request.use(config => {
 
 // response interceptor
 service.interceptors.response.use((response) => {
-  console.log('interceptors.response!')
+  // console.log('interceptors.response!')
   // debugger
   if (response.data.error && response.data.error === 'login error') {
     console.log('login error')
