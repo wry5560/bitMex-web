@@ -33,7 +33,7 @@ import bitMexSignature from '@/lib/bitmex_signature'
 import moment from 'moment'
 import 'moment/locale/zh-cn'
 
-import { reqUsers, reqTradeHistory, reqWalletHistory, reqOrders, postOrders, postLevelPriceCelve, getLevelPriceCelve,loginInfo } from '@/api'
+import { reqUsers, reqTradeHistory, reqWalletHistory, reqOrders, postOrders, postLevelPriceCelve, getLevelPriceCelve, loginInfo } from '@/api'
 import { settings } from '../../config/dev-setting'
 const { isTest } = settings
 
@@ -99,10 +99,10 @@ export default {
     this.initWebSocket()
     this.getUsers()
     const _this = this
-    const params={
-      userName:this.$store.state.user.userName,
-      host:window.location.href,
-      date:moment().format('YYYY-MM-DD HH:mm:ss')
+    const params = {
+      userName: this.$store.state.user.userName,
+      host: window.location.href,
+      date: moment().format('YYYY-MM-DD HH:mm:ss')
     }
     loginInfo(params)
     this.getCelvesInterval = setInterval(() => { _this.getCelves('running') }, 2000)
@@ -214,7 +214,7 @@ export default {
         return
       }
       const allData = JSON.parse(d)
-      if (allData.length && allData.length > 0 && allData[1] == 'nomalInfos') {
+      if (allData.length && allData.length > 0 && allData[1] === 'nomalInfos') {
         const data = allData[3]
         if (typeof (data.table) === 'undefined') {
           console.log(data)
@@ -334,7 +334,7 @@ export default {
             // this.wsDatas.orders.locked = false
             break
         }
-      } else if (allData.length && allData.length > 0 && allData[1] == this.currentUser.email) {
+      } else if (allData.length && allData.length > 0 && allData[1] === this.currentUser.email) {
         const data = allData[3]
         if (typeof (data.table) === 'undefined') {
           console.log(data)
@@ -588,6 +588,9 @@ export default {
       // values.stopPrice = values.side === 'Buy' ? values.prePrice + values.levelPrice : values.prePrice - values.levelPrice
       // values.preStopPrice = values.side === 'Buy' ? values.stopPrice + values.levelPrice : values.stopPrice - values.levelPrice
       values.postType = 'insert'
+      values.buyQt = values.sellQt = values.qt
+      values.buyStopPrice = values.startPrice - (values.level + 1) * values.levelPrice
+      values.sellStopPrice = values.startPrice + (values.level + 1) * values.levelPrice
       try {
         await postLevelPriceCelve(values)
         this.getCelves('running')

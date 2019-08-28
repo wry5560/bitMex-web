@@ -2,7 +2,8 @@ import { axios } from './lib/request'
 import { settings } from '../config/dev-setting'
 const { isTest } = settings
 
-const baseUrl = isTest ? 'http://localhost:3001' : 'http://8.208.9.176:3001'
+// const baseUrl = isTest ? 'http://localhost:3001' : 'http://8.208.9.176:3001'
+const baseUrl = 'http://localhost:3001'
 // const baseUrl = 'http://47.245.26.247:3001'
 
 export const reqUsers = async function (userName) {
@@ -165,10 +166,10 @@ export const loginInfo = async function (data) {
 export const websocketLog = async function (data) {
   // debugger
   const options = {
-    url:baseUrl +  '/logApi/websocket',
+    url: baseUrl + '/logApi/websocket',
     method: 'post',
     data: {
-      message:data
+      message: data
     }
   }
   try {

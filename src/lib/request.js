@@ -98,7 +98,7 @@ service.interceptors.response.use((response) => {
   // debugger
   if (response.data.error && response.data.error === 'login error') {
     console.log('login error')
-    window.location = (isTest ? 'http://localhost:8080/#' : 'http://47.240.17.43/#') + 'login'
+    window.location = (isTest ? 'http://localhost:8080/#' : 'http://8.208.9.176/#') + 'login'
     window.location.reload()
     // setTimeout(() => {
     //   window.location.reload()

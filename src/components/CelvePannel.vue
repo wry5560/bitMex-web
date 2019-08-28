@@ -36,8 +36,8 @@
           <a-col :lg="12">
             总层级：<div style="float: right"><b>{{this.currentCelve.level}}</b></div>
           </a-col>
-          <a-col :lg="12">
-            平仓（减仓）层级：<div style="float: right"><b>{{this.currentCelve.stopLevel}}</b></div>
+          <a-col :lg="12" >
+            减仓层级：<div style="float: right"><b>{{this.currentCelve.stopLevel}}</b></div>
           </a-col>
           <a-col :lg="12">
             总成交次数：<div style="float: right"><b>{{this.currentCelve.totalTimes}}</b></div>
@@ -58,8 +58,8 @@
                             <a-form-item>
                               <template>
                                 <a-radio-group name="radioGroup1"
-                                               v-decorator="['levelStopType',{initialValue:currentCelve ? currentCelve.levelStopType : 'normal'}]"
-
+                                               v-decorator="['levelStopType',{initialValue:currentCelve ? currentCelve.levelStopType : 'reduce'}]"
+                                               @change="levelStopTypeChange"
                                                :disabled="isEdit">
                                   <a-radio value="normal">普通模式</a-radio>
                                   <a-radio value="reduce">减仓模式</a-radio>
@@ -127,13 +127,13 @@
                 />
               </a-form-item>
             </a-col>
-            <a-col :lg="24">
-              <a-form-item label="减仓（平仓）层级" :labelCol="{ span: 7 }" :wrapperCol="{ span: 17 }">
+            <a-col :lg="24" v-if="levelStopTypeValue === 'reduce'">
+              <a-form-item label="减仓层级" :labelCol="{ span: 7 }" :wrapperCol="{ span: 17 }">
                 <a-input-number
-                  placeholder="请输入减仓（平仓）层级"
+                  placeholder="请输入减仓层级"
                   :min="0"
                   :precision="0"
-                  v-decorator="['stopLevel',{rules: [{ required: true, message: '请输入减仓（平仓）层级',type:'number'}],initialValue:currentCelve ? currentCelve.stopLevel : 0}]"
+                  v-decorator="['stopLevel',{rules: [{ required: true, message: '请输入减仓层级',type:'number'}],initialValue:currentCelve ? currentCelve.stopLevel : 0}]"
                   style="width:100%"
                 />
               </a-form-item>
@@ -175,6 +175,7 @@ export default {
       form: this.$form.createForm(this),
       isEdit: false,
       type: 1,
+      levelStopTypeValue: 'reduce',
       side: 1,
       isRun: 0,
       bodyStyle: {
@@ -217,9 +218,9 @@ export default {
     changeType (e) {
       this.type = e.target.value
     },
-    // changeType (e) {
-    //   this.type = e.target.value
-    // },
+    levelStopTypeChange (e) {
+      this.levelStopTypeValue = e.target.value
+    },
     start () {
       this.form.validateFields((err, values) => {
         if (!err) {

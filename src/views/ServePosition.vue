@@ -88,7 +88,7 @@
         this.initWebSocket()
         const _this = this
         await this.getUsers()
-        setInterval(()=>{_this.getCelves('running')},2000)
+        setInterval(()=>{_this.getCelves('running')},2500)
         setInterval(()=>{_this.levelPriceCelve()},1000)
       },
       destroyed () {
@@ -107,6 +107,7 @@
           // }
           return classNames
         },
+        //初始化仓位列表
         initPosition(){
           this.positions=[]
           if(this.users.length>0){
@@ -118,6 +119,9 @@
             })
           }
         },
+
+
+        //-------------------------------------------------------------------------------websocket 方法-------------------------------------------------------------------------------
         initWebSocket () { // 初始化weosocket
           if (!this.websock) {
             console.log('建立websocket连接')
@@ -294,6 +298,29 @@
           }
 
         },
+
+        createdUserWs(user){
+          const { userName, apiKey, email } = user
+          if (userName) {
+            const key = isTest ? apiKey[0].key : apiKey[1].key
+            const apiSecret = isTest ? apiKey[0].apiSecret : apiKey[1].apiSecret
+            // console.log(key)
+            // console.log(apiSecret)
+            const verb = 'GET'
+            const path = '/realtime'
+            const expires = Math.round(new Date().getTime() / 1000) + 10
+            const signature = bitMexSignature(apiSecret, verb, path, expires)
+            const op = [1, email, userName]
+            this.websocketsend(JSON.stringify(op))
+            const op2 = [0, email, userName, { 'op': 'authKeyExpires', 'args': [key, expires, signature] }]
+            this.websocketsend(JSON.stringify(op2))
+            const option = userName == '233089043' ? ['position','affiliate']:['position']
+            const op3 = [0, email, userName, { 'op': 'subscribe', 'args': option }]
+            this.websocketsend(JSON.stringify(op3))
+          }
+        },
+
+        //-------------------------------------------------------------------------------后台请求 方法-------------------------------------------------------------------------------
         async getUsers () {
           try {
             console.log('get users!')
@@ -321,73 +348,8 @@
             console.log(e)
           }
         },
-        createdUserWs(user){
-          const { userName, apiKey, email } = user
-          if (userName) {
-            const key = isTest ? apiKey[0].key : apiKey[1].key
-            const apiSecret = isTest ? apiKey[0].apiSecret : apiKey[1].apiSecret
-            // console.log(key)
-            // console.log(apiSecret)
-            const verb = 'GET'
-            const path = '/realtime'
-            const expires = Math.round(new Date().getTime() / 1000) + 10
-            const signature = bitMexSignature(apiSecret, verb, path, expires)
-            const op = [1, email, userName]
-            this.websocketsend(JSON.stringify(op))
-            const op2 = [0, email, userName, { 'op': 'authKeyExpires', 'args': [key, expires, signature] }]
-            this.websocketsend(JSON.stringify(op2))
-            const option = userName == '233089043' ? ['position','affiliate']:['position']
-            const op3 = [0, email, userName, { 'op': 'subscribe', 'args': option }]
-            this.websocketsend(JSON.stringify(op3))
-          }
-        },
-       levelPriceCelve(){
-         this.celves.forEach(async item=>{
-           if(item.firstTime){
-                 this.doMulitCelve(item,null,true)
-               }else{
-             const userPosition = this.positions.find(i=>i.username==item.username[0]).position
-             switch (true) {
-               case ( userPosition >= item.qt * (item.currentLevel+ 1)):
-                 this.doMulitCelve(item,'Buy')
-                     break
-               case (userPosition <= item.qt * (item.currentLevel- 1)):
-                 this.doMulitCelve(item,'Sell')
-                 break
-               case (item.qt * item.currentLevel > userPosition  && userPosition > item.qt * (item.currentLevel- 1)):
-                 // console.log('userPosition:',userPosition)
-                 // console.log('item.qt * item.currentLevel:',(item.qt * item.currentLevel))
-                 // console.log('item.qt * (item.currentLevel- 1):',(item.qt * (item.currentLevel- 1)))
-                 if(this.currentPrice * 2 < item.prePrice + item.nextPrice){
-                   console.log('Buy')
-                   const qt = item.qt * item.currentLevel - userPosition
-                   this.doMulitCelve(item,'Buy',true,qt)
-                 }
-                 break
-               case (item.qt * item.currentLevel < userPosition && userPosition < item.qt * (item.currentLevel + 1)):
-                 if(this.currentPrice * 2 > item.prePrice + item.nextPrice){
-                   console.log('Sell')
-                   const qt = userPosition - item.qt * item.currentLevel
-                   this.doMulitCelve(item,'Sell',true,qt)
-                 }
-                 break
-               default :
-                 return
-             }
-           }
-         })
-          // this.celves.forEach(async item=>{
-          //   if(item.firstTime){
-          //     this.doMulitCelve(item,null,true)
-          //   }else{
-          //     if(currentPrice >= item.prePrice + item.offset && item.currentLevel > (-1 - item.level) ){
-          //       this.doMulitCelve(item,'Sell')
-          //     }else if(currentPrice <= item.nextPrice - item.offset && item.currentLevel < item.level + 1 ){
-          //       this.doMulitCelve(item,'Buy')
-          //     }
-          //   }
-          // })
-        },
+
+        //暂时弃用
         async createOrder(celve,isPc,firstTime){
           if(this.orderLocks[celve._id]) {
             // debugger
@@ -451,144 +413,216 @@
           }
         },
         async delAllOrder(celve){
+          console.time("delete");
           const params={
             postType: 'delete all',
             username:celve.username[0],
             symbol:'XBTUSD',
           }
           try{
-            // console.log('平仓参数：',params)
-            const res = await postOrders(params)
-            return res
+            console.log('撤单执行！',this.positionLocks)
+            const delRes = await postOrders(params)
+            if(delRes.error){
+              console.log('撤单错误：',delRes.error.message)
+              console.timeEnd("delete");
+              return {success:false}
+            }else{
+              console.log('已发送撤单命令：',delRes)
+              console.timeEnd("delete");
+              return {success:true}
+            }
           }catch (e) {
-            // this.orderLocks[celve._id] = false
-            return {error:{message:e}}
+            console.log('撤单错误：',e)
+            console.timeEnd("delete");
+            return {success:false}
           }
         },
-        async doMulitCelve(item,side,firstTime,qt){
-          //策略锁，防止重复下单
-          //   if (this.lockCelve) {
-          //   console.log('celve locked!')
-          //   return
-          // }
-          // console.time()
-          // this.lockCelve = true
-          //将所有挂单撤销，以免重复挂单
-          // const userPosition=this.positions.find(i=>i.username == item.username[0])
-          // debugger
+
+        //-------------------------------------------------------------------------------  策略  方法-------------------------------------------------------------------------------
+       levelPriceCelve(){
+         this.celves.forEach(async item=>{
+           if(item.firstTime){
+                 this.doMulitCelve({
+                   celve:item,
+                   firstTime:true
+                 })
+               }else{
+
+             if (item.levelStopType === 'stop' && ( this.currentPrice <= item.buyStopPrice || this.currentPrice >= item.sellStopPrice )){
+               this.doPcCelve(item)
+               return
+             }
+
+             const userPosition = this.positions.find(i=>i.username==item.username[0]).position
+             //如果当前持仓和本级持仓不同，则运行策略
+             switch ( userPosition != item.currentPosition ) {
+               //当前持仓大于或等于本级持仓和本级多单仓位之和，表示挂单仓位已成交，执行下一级挂单
+               case ( userPosition >= item.currentPosition + item.buyQt):
+                 this.doMulitCelve({
+                   celve:item,
+                   side:'Buy'
+                 })
+                     break
+               //当前持仓小于或等于本级持仓减去本级空单仓位之和，表示挂单仓位已成交，执行下一级挂单
+               case (userPosition <= item.currentPosition - item.sellQt):
+                 this.doMulitCelve({
+                   celve:item,
+                   side:'Sell'
+                 })
+                 break
+
+               //当前持仓比本级持仓大，但比本级持仓和本级多单仓位之和小，表示多单部分成交，执行平仓策略
+               case (item.currentPosition + item.buyQt > userPosition  && userPosition > item.currentPosition):
+                 // console.log('userPosition:',userPosition)
+                 // console.log('item.qt * item.currentLevel:',(item.qt * item.currentLevel))
+                 // console.log('item.qt * (item.currentLevel- 1):',(item.qt * (item.currentLevel- 1)))
+                 if(this.currentPrice * 2 < item.prePrice + item.nextPrice){
+                   // console.log('Buy')
+                   const qt =  userPosition - item.currentPosition
+                   this.doPartpcCelve({
+                     celve:item,
+                     side:'Sell',
+                     qt:qt
+                   })
+                 }
+                 break
+               //当前持仓比本级持仓小，但比本级持仓和本级空单仓位之和大，表示空单部分成交，执行平仓策略
+               case (item.currentPosition - item.sellQt < userPosition && userPosition < item.currentPosition):
+                 if(this.currentPrice * 2 > item.prePrice + item.nextPrice){
+                   // console.log('Sell')
+                   const qt = item.currentPosition - userPosition
+                   this.doPartpcCelve({
+                     celve:item,
+                     side:'Buy',
+                     qt:qt
+                   })
+                 }
+                 break
+               default :
+                 return
+             }
+           }
+         })
+        },
+
+        async doMulitCelve({celve,side,firstTime,qt}){
+          const _this = this
           console.log('this Position:',this.positions)
-          console.log('item:',item)
+          console.log('celve:',celve)
           // console.log('userPosition:',userPosition)
-          if(this.positionLocks[item.username[0]]) {
+          if(this.positionLocks[celve.username[0]]) {
             // debugger
             console.log('wait createOrder locked! wait!')
             return
           }else{
-            this.positionLocks[item.username[0]]= true
+            this.positionLocks[celve.username[0]]= true
             console.log('挂单锁',this.positionLocks)
-          console.time("delete");
-          // if(item.currentLevel > 1){
-          // if(!firstTime){
-            try{
-              console.log('撤单执行！',this.positionLocks)
-              const delRes = await this.delAllOrder(item)
-              if(delRes.error){
-                console.log('撤单错误：',delRes.error.message)
-                this.positionLocks[item.username[0]]= false
-                return
-              }
-              console.log('已发送撤单命令：',delRes)
-            }catch (e) {
-              console.log('撤单错误：',e)
-              this.positionLocks[item.username[0]]= false
+
+            const delRes = await this.delAllOrder(celve)
+            if (!delRes.success) {
+              setTimeout( () => {
+                _this.positionLocks[celve.username[0]]= false
+              },3000)
               return
             }
-          // }
-          // }
-          console.timeEnd("delete");
-          console.time("挂单")
 
-
+            console.time("挂单")
             console.log('发送开单命令！')
             // debugger
 
             const params={
               orders:[]
             }
-            if(item.currentLevel < item.level){
+            if (side === 'Buy'){
+              if( celve.currentLevel < celve.level - 1){
+                params.orders.push({
+                  username:celve.username[0],
+                  symbol:'XBTUSD',
+                  // side:celve.side,
+                  side:'Buy',
+                  orderQty:celve.buyQt,
+                  price:firstTime ? celve.nextPrice : side=='Buy' ? celve.nextPrice - celve.levelPrice : celve.currentPrice,
+                  ordType:'Limit',
+                  clOrdID:celve._id + celve.currentLevel + moment().format('HHmmss')
+                })
+              }
               params.orders.push({
-                username:item.username[0],
-                symbol:'XBTUSD',
-                // side:celve.side,
-                side:'Buy',
-                orderQty:item.qt,
-                price:firstTime ? item.nextPrice : side=='Buy' ? item.nextPrice - item.levelPrice : item.currentPrice,
-                ordType:'Limit',
-                clOrdID:item._id + item.currentLevel + moment().format('HHmmss')
-              })
-            }
-            if(item.currentLevel > 0 - item.level){
-              params.orders.push({
-                username:item.username[0],
+                username:celve.username[0],
                 symbol:'XBTUSD',
                 // side:celve.side,
                 side:'Sell',
-                orderQty:item.qt,
-                price:firstTime ? item.prePrice :  side=='Buy' ? item.currentPrice : item.prePrice + item.levelPrice ,
+                orderQty: celve.sellQt,
+                price:firstTime ? celve.prePrice :  side=='Buy' ? celve.currentPrice : celve.prePrice + celve.levelPrice ,
                 ordType:'Limit',
-                clOrdID:item._id + item.currentLevel + moment().format('HHmmss')
+                clOrdID:celve._id + celve.currentLevel + moment().format('HHmmss')
               })
-            }
-            if(qt){
+            }else{
               params.orders.push({
-                username:item.username[0],
+                username:celve.username[0],
                 symbol:'XBTUSD',
                 // side:celve.side,
-                side:side ,
-                orderQty:qt,
-                price: side=='Buy' ? (item.currentPrice + 10):(item.currentPrice - 10 ) ,
+                side:'Buy',
+                orderQty:celve.buyQt,
+                price:firstTime ? celve.nextPrice : side=='Buy' ? celve.nextPrice - celve.levelPrice : celve.currentPrice,
                 ordType:'Limit',
-                clOrdID:item._id + item.currentLevel + moment().format('HHmmss')
+                clOrdID:celve._id + celve.currentLevel + moment().format('HHmmss')
               })
+              if(celve.currentLevel > 1 - celve.level){
+                params.orders.push({
+                  username:celve.username[0],
+                  symbol:'XBTUSD',
+                  // side:celve.side,
+                  side:'Sell',
+                  orderQty:celve.sellQt,
+                  price:firstTime ? celve.prePrice :  side=='Buy' ? celve.currentPrice : celve.prePrice + celve.levelPrice ,
+                  ordType:'Limit',
+                  clOrdID:celve._id + celve.currentLevel + moment().format('HHmmss')
+                })
+              }
             }
             params.postType='create mulit'
-            params.username=item.username[0]
+            params.username=celve.username[0]
             try{
               console.log('开单参数：',JSON.stringify(params))
               const res = await postOrders(params)
               // this.orderLocks[celve._id] = false
               if (res.error) {
-                item.actions.unshift(res.error)
-                this.positionLocks[item.username[0]] = false
+                celve.actions.unshift(res.error)
+                setTimeout( () => {
+                  _this.positionLocks[celve.username[0]]= false
+                },3000)
                 return
                 // if(res.response.headers['x-ratelimit-remaining'] && res.response.headers['x-ratelimit-remaining']>10){
-                //   this.doMulitCelve(item,side,firstTime)
+                //   this.doMulitCelve(celve,side,firstTime)
                 // }else{
                 //   const _this=this
-                //   setTimeout(()=>{_this.doMulitCelve(item,side,firstTime),res.response.headers['Retry-After'] ? res.response.headers['Retry-After']: 5000})
+                //   setTimeout(()=>{_this.doMulitCelve(celve,side,firstTime),res.response.headers['Retry-After'] ? res.response.headers['Retry-After']: 5000})
                 // }
-
               } else {
                 if(res.length){
                   res.forEach(i=>{
                     const message = i.orderQty
                       ? '挂单 ' + i.orderQty + '... ' + '价格 ' + i.price + '... ' + ' 时间 ' + moment().format('YYYY-MM-DD HH:mm:ss')
                       : JSON.stringify(i) + moment().format('YYYY-MM-DD HH:mm:ss')
-                    item.actions.unshift(message)
+                    celve.actions.unshift(message)
                     console.log(message)
                   })
                 }else{
-                  item.actions.unshift(JSON.stringify(res))
-                  this.positionLocks[item.username[0]] = false
+                  celve.actions.unshift(JSON.stringify(res))
+                  setTimeout( () => {
+                    _this.positionLocks[celve.username[0]]= false
+                  },3000)
                   return
                 }
                 // console.log(res,JSON.stringify(res))
-                // this.orderLocks[item._id] = false
+                // this.orderLocks[celve._id] = false
               }
             }catch (e) {
               // this.orderLocks[celve._id] = false
               console.log('挂单错误：',e)
-              this.positionLocks[item.username[0]] = false
+              setTimeout( () => {
+                _this.positionLocks[celve.username[0]]= false
+              },3000)
               return {error:{message:e}}
             }
           }
@@ -599,24 +633,218 @@
           console.time("策略更新")
           try {
             if(firstTime){
-              item.firstTime = false
+              celve.firstTime = false
             }else{
-              item.currentLevel =   side=='Buy' ? item.currentLevel + 1 : item.currentLevel - 1
-              item.currentPrice = side=='Buy' ? item.currentPrice -  item.levelPrice : item.currentPrice +  item.levelPrice
-              item.prePrice =   side=='Buy' ? item.prePrice -  item.levelPrice : item.prePrice +  item.levelPrice
-              item.nextPrice =   side=='Buy' ? item.nextPrice -  item.levelPrice : item.nextPrice +  item.levelPrice
-              item.totalTimes += 1
+              if (side === 'Buy'){
+
+              }else{
+
+              }
+              celve.currentLevel =   side=='Buy' ? celve.currentLevel + 1 : celve.currentLevel - 1
+              celve.currentPrice = side=='Buy' ? celve.currentPrice -  celve.levelPrice : celve.currentPrice +  celve.levelPrice
+              celve.prePrice =   side=='Buy' ? celve.prePrice -  celve.levelPrice : celve.prePrice +  celve.levelPrice
+              celve.nextPrice =   side=='Buy' ? celve.nextPrice -  celve.levelPrice : celve.nextPrice +  celve.levelPrice
+              celve.totalTimes += 1
+
+
             }
-            delete item.state
-            item.postType = 'update'
-            console.log('更新策略，参数:',item)
-            await postLevelPriceCelve(item)
+            delete celve.state
+            celve.postType = 'update'
+            console.log('更新策略，参数:',celve)
+            await postLevelPriceCelve(celve)
             await this.getCelves('running')
-            this.positionLocks[item.username[0]]= false
+            setTimeout( () => {
+              _this.positionLocks[celve.username[0]]= false
+            },3000)
             // this.lockCelve = false
           } catch (e) {
             // userPosition.locked = false
-            this.positionLocks[item.username[0]]= false
+            setTimeout( () => {
+              _this.positionLocks[celve.username[0]]= false
+            },3000)
+          }
+          console.timeEnd("策略更新");
+          console.timeEnd()
+        },
+
+        async doPcCelve(celve){
+          const _this = this
+          // console.log('userPosition:',userPosition)
+          if(this.positionLocks[celve.username[0]]) {
+            // debugger
+            console.log('wait createOrder locked! wait!')
+            return
+          }else{
+            this.positionLocks[celve.username[0]]= true
+            console.log('挂单锁',this.positionLocks)
+
+            const delRes = await this.delAllOrder(celve)
+            if (!delRes.success) {
+              setTimeout( () => {
+                _this.positionLocks[celve.username[0]]= false
+              },3000)
+              return
+            }
+
+            console.time("挂单")
+            console.log('发送开单命令！')
+            // debugger
+            const params={
+            }
+            params.postType='closePosition'
+            params.username=celve.username[0]
+            try{
+              console.log('开单参数：',JSON.stringify(params))
+              const res = await postOrders(params)
+              // this.orderLocks[celve._id] = false
+              if (res.error) {
+                celve.actions.unshift(res.error)
+                setTimeout( () => {
+                  _this.positionLocks[celve.username[0]]= false
+                },3000)
+                return
+                // if(res.response.headers['x-ratelimit-remaining'] && res.response.headers['x-ratelimit-remaining']>10){
+                //   this.doMulitCelve(celve,side,firstTime)
+                // }else{
+                //   const _this=this
+                //   setTimeout(()=>{_this.doMulitCelve(celve,side,firstTime),res.response.headers['Retry-After'] ? res.response.headers['Retry-After']: 5000})
+                // }
+              } else {
+                if(res.orderID){
+                  res.forEach(i=>{
+                    const message = '止损平仓...'+ ' 时间: ' + moment().format('YYYY-MM-DD HH:mm:ss')
+                    celve.actions.unshift(message)
+                    console.log(message)
+                  })
+                }else{
+                  celve.actions.unshift(JSON.stringify(res))
+                  setTimeout( () => {
+                    _this.positionLocks[celve.username[0]]= false
+                  },3000)
+                  return
+                }
+              }
+            }catch (e) {
+              console.log('挂单错误：',e)
+              setTimeout( () => {
+                _this.positionLocks[celve.username[0]]= false
+              },3000)
+              return {error:{message:e}}
+            }
+          }
+          console.timeEnd("挂单");
+          //更新策略及日志
+
+          console.time("策略更新")
+          try {
+            celve.postType = 'update'
+            console.log('更新策略，参数:',celve)
+            await postLevelPriceCelve(celve)
+            this.$emit('stop')
+            _this.positionLocks[celve.username[0]]= false
+            // this.lockCelve = false
+          } catch (e) {
+            // userPosition.locked = false
+            this.$emit('stop')
+            _this.positionLocks[celve.username[0]]= false
+          }
+          console.timeEnd("策略更新");
+          console.timeEnd()
+        },
+        async doPartpcCelve({celve,side,qt}){
+          const _this = this
+          // console.log('userPosition:',userPosition)
+          if(this.positionLocks[celve.username[0]]) {
+            // debugger
+            console.log('wait createOrder locked! wait!')
+            return
+          }else{
+            this.positionLocks[celve.username[0]]= true
+            console.log('挂单锁',this.positionLocks)
+
+            const delRes = await this.delAllOrder(celve)
+            if (!delRes.success) {
+              setTimeout( () => {
+                _this.positionLocks[celve.username[0]]= false
+              },3000)
+              return
+            }
+
+
+            console.time("挂单")
+            console.log('发送开单命令！')
+            // debugger
+            const params={
+              orders:[]
+            }
+              params.orders.push({
+                username:celve.username[0],
+                symbol:'XBTUSD',
+                // side:celve.side,
+                side:side ,
+                orderQty:qt,
+                price: side=='Buy' ? (celve.currentPrice + 10):(celve.currentPrice - 10 ) ,
+                ordType:'Limit',
+                clOrdID:celve._id + celve.currentLevel + moment().format('HHmmss')
+              })
+            params.postType='create mulit'
+            params.username=celve.username[0]
+            try{
+              console.log('开单参数：',JSON.stringify(params))
+              const res = await postOrders(params)
+              // this.orderLocks[celve._id] = false
+              if (res.error) {
+                celve.actions.unshift(res.error)
+                setTimeout( () => {
+                  _this.positionLocks[celve.username[0]]= false
+                },3000)
+                return
+                // if(res.response.headers['x-ratelimit-remaining'] && res.response.headers['x-ratelimit-remaining']>10){
+                //   this.doMulitCelve(celve,side,firstTime)
+                // }else{
+                //   const _this=this
+                //   setTimeout(()=>{_this.doMulitCelve(celve,side,firstTime),res.response.headers['Retry-After'] ? res.response.headers['Retry-After']: 5000})
+                // }
+              } else {
+                if(res.length){
+                  res.forEach(i=>{
+                    const message = i.orderQty
+                      ? '挂单 ' + i.orderQty + '... ' + '价格 ' + i.price + '... ' + ' 时间 ' + moment().format('YYYY-MM-DD HH:mm:ss')
+                      : JSON.stringify(i) + moment().format('YYYY-MM-DD HH:mm:ss')
+                    celve.actions.unshift(message)
+                    console.log(message)
+                  })
+                }else{
+                  celve.actions.unshift(JSON.stringify(res))
+                  setTimeout( () => {
+                    _this.positionLocks[celve.username[0]]= false
+                  },3000)
+                  return
+                }
+              }
+            }catch (e) {
+              console.log('挂单错误：',e)
+              setTimeout( () => {
+                _this.positionLocks[celve.username[0]]= false
+              },3000)
+              return {error:{message:e}}
+            }
+          }
+          console.timeEnd("挂单");
+          //更新策略及日志
+          console.time("策略更新")
+          try {
+            celve.firstTime = true
+            delete celve.state
+            celve.postType = 'update'
+            console.log('更新策略，参数:',celve)
+            await postLevelPriceCelve(celve)
+            await this.getCelves('running')
+            _this.positionLocks[celve.username[0]]= false
+            // this.lockCelve = false
+          } catch (e) {
+            // userPosition.locked = false
+            _this.positionLocks[celve.username[0]]= false
           }
           console.timeEnd("策略更新");
           console.timeEnd()
