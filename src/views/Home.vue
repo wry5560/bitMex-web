@@ -591,6 +591,7 @@ export default {
       values.buyQt = values.sellQt = values.qt
       values.buyStopPrice = values.startPrice - (values.level + 1) * values.levelPrice
       values.sellStopPrice = values.startPrice + (values.level + 1) * values.levelPrice
+      values.currentPosition = values.startPosition
       try {
         await postLevelPriceCelve(values)
         this.getCelves('running')

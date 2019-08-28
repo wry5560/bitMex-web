@@ -412,6 +412,8 @@
             }
           }
         },
+
+
         async delAllOrder(celve){
           console.time("delete");
           const params={
@@ -455,6 +457,19 @@
 
              const userPosition = this.positions.find(i=>i.username==item.username[0]).position
              //如果当前持仓和本级持仓不同，则运行策略
+
+             //回归0层时，平掉多余仓位
+             if (item.currentLevel === 0 && item.currentPosition != item.startPosition){
+               console.log('平掉多余仓位')
+               const qt = item.currentPosition - item.startPosition
+               this.doPartpcCelve({
+                 celve:item,
+                 side:qt <0 ? 'Buy':'Sell',
+                 qt:Math.abs(qt)
+               })
+               return
+             }
+
              switch ( userPosition != item.currentPosition ) {
                //当前持仓大于或等于本级持仓和本级多单仓位之和，表示挂单仓位已成交，执行下一级挂单
                case ( userPosition >= item.currentPosition + item.buyQt):
@@ -635,18 +650,38 @@
             if(firstTime){
               celve.firstTime = false
             }else{
-              if (side === 'Buy'){
-
-              }else{
-
+              celve.currentPosition = side === 'Buy' ? celve.currentPosition + celve.buyQt : celve.currentPosition - celve.sellQt
+              if(celve.levelStopType === 'reduce'){
+                celve.buyQt = celve.sellQt = celve.qt
+                if (side === 'Buy'){
+                  if( celve.currentLevel >= celve.stopLevel ){
+                    celve.sellQt = celve.qt * 4/3
+                  }
+                  if( celve.currentLevel < 0 - celve.stopLevel ){
+                    celve.reduceTimes += -1
+                  }
+                }else{
+                  if( celve.currentLevel <= 0 - celve.stopLevel ){
+                    celve.sellQt = celve.qt * 4/3
+                  }
+                  if( celve.currentLevel > celve.stopLevel ){
+                    celve.reduceTimes += 1
+                  }
+                }
               }
               celve.currentLevel =   side=='Buy' ? celve.currentLevel + 1 : celve.currentLevel - 1
               celve.currentPrice = side=='Buy' ? celve.currentPrice -  celve.levelPrice : celve.currentPrice +  celve.levelPrice
               celve.prePrice =   side=='Buy' ? celve.prePrice -  celve.levelPrice : celve.prePrice +  celve.levelPrice
               celve.nextPrice =   side=='Buy' ? celve.nextPrice -  celve.levelPrice : celve.nextPrice +  celve.levelPrice
               celve.totalTimes += 1
-
-
+              if(celve.reduceTimes == 3){
+                celve.currentLevel = celve.currentLevel - 1
+                celve.reduceTimes = 0
+              }
+              if(celve.reduceTimes == -3){
+                celve.currentLevel = celve.currentLevel + 1
+                celve.reduceTimes = 0
+              }
             }
             delete celve.state
             celve.postType = 'update'
@@ -834,6 +869,7 @@
           //更新策略及日志
           console.time("策略更新")
           try {
+            celve.currentPosition = side === 'Buy' ? celve.currentPosition + qt : celve.currentPosition - qt
             celve.firstTime = true
             delete celve.state
             celve.postType = 'update'

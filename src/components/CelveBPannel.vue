@@ -115,6 +115,7 @@
                 />
               </a-form-item>
             </a-col>
+
             <a-col :lg="24">
               <a-form-item label="止盈价差" :labelCol="{ span: 6 }" :wrapperCol="{ span: 18 }">
                 <a-input-number
@@ -156,7 +157,8 @@ export default {
       isRun: 0,
       bodyStyle: {
         height: '400px',
-        padding: 0
+        padding: 0,
+        overflow: 'auto'
       },
       headStyle: {
         'text-align': 'left'

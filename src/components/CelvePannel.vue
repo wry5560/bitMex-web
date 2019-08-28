@@ -117,6 +117,15 @@
               </a-form-item>
             </a-col>
             <a-col :lg="24">
+              <a-form-item label="底仓" :labelCol="{ span: 7 }" :wrapperCol="{ span: 17 }">
+                <a-input-number
+                  placeholder="请输入底仓"
+                  v-decorator="['startPosition',{rules: [{ required: true, message: '请输入底仓',type:'number'}],initialValue:currentCelve ? currentCelve.startPosition : 0}]"
+                  style="width:100%"
+                />
+              </a-form-item>
+            </a-col>
+            <a-col :lg="24">
               <a-form-item label="开单层级" :labelCol="{ span: 7 }" :wrapperCol="{ span: 17 }">
                 <a-input-number
                   placeholder="请输入开单层级"
@@ -180,7 +189,8 @@ export default {
       isRun: 0,
       bodyStyle: {
         height: '400px',
-        padding: 0
+        padding: 0,
+        overflow: 'auto'
       },
       headStyle: {
         'text-align': 'left'
@@ -230,6 +240,7 @@ export default {
     },
     stop () {
       this.$emit('stop', this.currentCelve)
+      this.levelStopTypeValue = 'reduce'
     },
     toEdit () {
       this.isEdit = true
@@ -256,7 +267,7 @@ export default {
 <style lang="scss" scoped>
 .celve{
   .ant-form-item{
-    margin-bottom: 14px;
+    margin-bottom: 8px;
   }
 }
 </style>
