@@ -44,7 +44,7 @@
           </a-col>
         </a-row>
         <div style="padding: 8px 24px;"><b>运行日志：</b></div>
-        <div style="padding: 0 24px;height: 190px;overflow: auto" ref="log">
+        <div style="padding: 0 24px;width:98%; height: 180px;overflow: auto" ref="log">
           <div v-for="(item,index) in currentCelve.actions" :key="index">{{item}}</div>
         </div>
       </template>
@@ -58,7 +58,7 @@
                             <a-form-item>
                               <template>
                                 <a-radio-group name="radioGroup1"
-                                               v-decorator="['levelStopType',{initialValue:currentCelve ? currentCelve.levelStopType : 'reduce'}]"
+                                               v-decorator="['levelStopType',{initialValue:currentCelve ? currentCelve.levelStopType : levelStopTypeValue}]"
                                                @change="levelStopTypeChange"
                                                :disabled="isEdit">
                                   <a-radio value="normal">普通模式</a-radio>
@@ -190,7 +190,8 @@ export default {
       bodyStyle: {
         height: '400px',
         padding: 0,
-        overflow: 'auto'
+        "overflow-y": 'auto',
+        "overflow-x": 'hidden'
       },
       headStyle: {
         'text-align': 'left'

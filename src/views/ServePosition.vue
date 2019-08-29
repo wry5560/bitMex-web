@@ -348,7 +348,15 @@
             console.log(e)
           }
         },
-
+        async stopCelve (data) {
+          data.postType = 'stop'
+          try {
+            await postLevelPriceCelve(data)
+            this.getCelves('running')
+          } catch (e) {
+            console.log(e)
+          }
+        },
         //暂时弃用
         async createOrder(celve,isPc,firstTime){
           if(this.orderLocks[celve._id]) {
@@ -449,7 +457,7 @@
                    firstTime:true
                  })
                }else{
-
+              // debugger
              if (item.levelStopType === 'stop' && ( this.currentPrice <= item.buyStopPrice || this.currentPrice >= item.sellStopPrice )){
                this.doPcCelve(item)
                return
@@ -465,63 +473,71 @@
                this.doPartpcCelve({
                  celve:item,
                  side:qt <0 ? 'Buy':'Sell',
-                 qt:Math.abs(qt)
+                 qt:Math.abs(qt),
+                 currentPositionChange:true
                })
                return
              }
+              if(userPosition != item.currentPosition){
+                switch (true) {
+                  //当前持仓大于或等于本级持仓和本级多单仓位之和，表示挂单仓位已成交，执行下一级挂单
+                  case ( userPosition >= (item.currentPosition + item.buyQt) ):
+                    // debugger
+                    this.doMulitCelve({
+                      celve:item,
+                      side:'Buy'
+                    })
+                    break
+                  //当前持仓小于或等于本级持仓减去本级空单仓位之和，表示挂单仓位已成交，执行下一级挂单
+                  case (userPosition <= (item.currentPosition - item.sellQt)):
+                    // debugger
+                    this.doMulitCelve({
+                      celve:item,
+                      side:'Sell'
+                    })
+                    break
 
-             switch ( userPosition != item.currentPosition ) {
-               //当前持仓大于或等于本级持仓和本级多单仓位之和，表示挂单仓位已成交，执行下一级挂单
-               case ( userPosition >= item.currentPosition + item.buyQt):
-                 this.doMulitCelve({
-                   celve:item,
-                   side:'Buy'
-                 })
-                     break
-               //当前持仓小于或等于本级持仓减去本级空单仓位之和，表示挂单仓位已成交，执行下一级挂单
-               case (userPosition <= item.currentPosition - item.sellQt):
-                 this.doMulitCelve({
-                   celve:item,
-                   side:'Sell'
-                 })
-                 break
-
-               //当前持仓比本级持仓大，但比本级持仓和本级多单仓位之和小，表示多单部分成交，执行平仓策略
-               case (item.currentPosition + item.buyQt > userPosition  && userPosition > item.currentPosition):
-                 // console.log('userPosition:',userPosition)
-                 // console.log('item.qt * item.currentLevel:',(item.qt * item.currentLevel))
-                 // console.log('item.qt * (item.currentLevel- 1):',(item.qt * (item.currentLevel- 1)))
-                 if(this.currentPrice * 2 < item.prePrice + item.nextPrice){
-                   // console.log('Buy')
-                   const qt =  userPosition - item.currentPosition
-                   this.doPartpcCelve({
-                     celve:item,
-                     side:'Sell',
-                     qt:qt
-                   })
-                 }
-                 break
-               //当前持仓比本级持仓小，但比本级持仓和本级空单仓位之和大，表示空单部分成交，执行平仓策略
-               case (item.currentPosition - item.sellQt < userPosition && userPosition < item.currentPosition):
-                 if(this.currentPrice * 2 > item.prePrice + item.nextPrice){
-                   // console.log('Sell')
-                   const qt = item.currentPosition - userPosition
-                   this.doPartpcCelve({
-                     celve:item,
-                     side:'Buy',
-                     qt:qt
-                   })
-                 }
-                 break
-               default :
-                 return
-             }
+                  //当前持仓比本级持仓大，但比本级持仓和本级多单仓位之和小，表示多单部分成交，执行平仓策略
+                  case ((item.currentPosition + item.buyQt) > userPosition  && userPosition > item.currentPosition):
+                    // console.log('userPosition:',userPosition)
+                    // console.log('item.qt * item.currentLevel:',(item.qt * item.currentLevel))
+                    // console.log('item.qt * (item.currentLevel- 1):',(item.qt * (item.currentLevel- 1)))
+                    // debugger
+                    if(this.currentPrice * 2 > item.prePrice + item.nextPrice){
+                      // console.log('Buy')
+                      const qt =  userPosition - item.currentPosition
+                      this.doPartpcCelve({
+                        celve:item,
+                        side:'Sell',
+                        qt:qt
+                      })
+                    }
+                    break
+                  //当前持仓比本级持仓小，但比本级持仓和本级空单仓位之和大，表示空单部分成交，执行平仓策略
+                  case ((item.currentPosition - item.sellQt) < userPosition && userPosition < item.currentPosition):
+                    if(this.currentPrice * 2 < (item.prePrice + item.nextPrice)){
+                      // console.log('Sell')
+                      // debugger
+                      const qt = item.currentPosition - userPosition
+                      this.doPartpcCelve({
+                        celve:item,
+                        side:'Buy',
+                        qt:qt
+                      })
+                    }
+                    break
+                  default :
+                    return
+                }
+              }
            }
          })
         },
 
         async doMulitCelve({celve,side,firstTime,qt}){
           const _this = this
+          let buyQt = celve.qt
+          let sellQt = celve.qt
           console.log('this Position:',this.positions)
           console.log('celve:',celve)
           // console.log('userPosition:',userPosition)
@@ -545,6 +561,29 @@
             console.log('发送开单命令！')
             // debugger
 
+            if(celve.levelStopType === 'reduce'){
+
+              if (side === 'Buy'){
+                if( celve.currentLevel >= celve.stopLevel){
+                  // debugger
+                  sellQt =Number( (celve.qt * 4/3).toFixed(0) )
+                }
+                if( celve.currentLevel < -1 - celve.stopLevel ){
+                  // debugger
+                  buyQt =Number( (celve.qt * 4/3).toFixed(0) )
+                }
+              }else if (side === 'Sell'){
+                // debugger
+                if( celve.currentLevel <= 0 - celve.stopLevel ){
+                  // debugger
+                  buyQt =Number( (celve.qt * 4/3).toFixed(0) )
+                }
+                if( celve.currentLevel > celve.stopLevel + 1){
+                  // debugger
+                  sellQt =Number( (celve.qt * 4/3).toFixed(0) )
+                }
+              }
+            }
             const params={
               orders:[]
             }
@@ -555,7 +594,7 @@
                   symbol:'XBTUSD',
                   // side:celve.side,
                   side:'Buy',
-                  orderQty:celve.buyQt,
+                  orderQty:buyQt,
                   price:firstTime ? celve.nextPrice : side=='Buy' ? celve.nextPrice - celve.levelPrice : celve.currentPrice,
                   ordType:'Limit',
                   clOrdID:celve._id + celve.currentLevel + moment().format('HHmmss')
@@ -566,7 +605,7 @@
                 symbol:'XBTUSD',
                 // side:celve.side,
                 side:'Sell',
-                orderQty: celve.sellQt,
+                orderQty: sellQt,
                 price:firstTime ? celve.prePrice :  side=='Buy' ? celve.currentPrice : celve.prePrice + celve.levelPrice ,
                 ordType:'Limit',
                 clOrdID:celve._id + celve.currentLevel + moment().format('HHmmss')
@@ -577,7 +616,7 @@
                 symbol:'XBTUSD',
                 // side:celve.side,
                 side:'Buy',
-                orderQty:celve.buyQt,
+                orderQty:buyQt,
                 price:firstTime ? celve.nextPrice : side=='Buy' ? celve.nextPrice - celve.levelPrice : celve.currentPrice,
                 ordType:'Limit',
                 clOrdID:celve._id + celve.currentLevel + moment().format('HHmmss')
@@ -588,7 +627,7 @@
                   symbol:'XBTUSD',
                   // side:celve.side,
                   side:'Sell',
-                  orderQty:celve.sellQt,
+                  orderQty:sellQt,
                   price:firstTime ? celve.prePrice :  side=='Buy' ? celve.currentPrice : celve.prePrice + celve.levelPrice ,
                   ordType:'Limit',
                   clOrdID:celve._id + celve.currentLevel + moment().format('HHmmss')
@@ -652,19 +691,16 @@
             }else{
               celve.currentPosition = side === 'Buy' ? celve.currentPosition + celve.buyQt : celve.currentPosition - celve.sellQt
               if(celve.levelStopType === 'reduce'){
-                celve.buyQt = celve.sellQt = celve.qt
+                celve.buyQt = buyQt
+                celve.sellQt = sellQt
                 if (side === 'Buy'){
-                  if( celve.currentLevel >= celve.stopLevel ){
-                    celve.sellQt = celve.qt * 4/3
-                  }
                   if( celve.currentLevel < 0 - celve.stopLevel ){
+                    debugger
                     celve.reduceTimes += -1
                   }
-                }else{
-                  if( celve.currentLevel <= 0 - celve.stopLevel ){
-                    celve.sellQt = celve.qt * 4/3
-                  }
-                  if( celve.currentLevel > celve.stopLevel ){
+                }else if (side === 'Sell'){
+                  if( celve.currentLevel > celve.stopLevel  ){
+                    debugger
                     celve.reduceTimes += 1
                   }
                 }
@@ -674,23 +710,24 @@
               celve.prePrice =   side=='Buy' ? celve.prePrice -  celve.levelPrice : celve.prePrice +  celve.levelPrice
               celve.nextPrice =   side=='Buy' ? celve.nextPrice -  celve.levelPrice : celve.nextPrice +  celve.levelPrice
               celve.totalTimes += 1
-              if(celve.reduceTimes == 3){
+              if(celve.reduceTimes === 3){
                 celve.currentLevel = celve.currentLevel - 1
                 celve.reduceTimes = 0
               }
-              if(celve.reduceTimes == -3){
+              if(celve.reduceTimes === -3){
                 celve.currentLevel = celve.currentLevel + 1
                 celve.reduceTimes = 0
               }
             }
             delete celve.state
             celve.postType = 'update'
+            if (celve.actions.length > 300){
+              celve.actions = celve.actions.slice(0,300)
+            }
             console.log('更新策略，参数:',celve)
             await postLevelPriceCelve(celve)
             await this.getCelves('running')
-            setTimeout( () => {
-              _this.positionLocks[celve.username[0]]= false
-            },3000)
+            this.positionLocks[celve.username[0]]= false
             // this.lockCelve = false
           } catch (e) {
             // userPosition.locked = false
@@ -728,6 +765,7 @@
             }
             params.postType='closePosition'
             params.username=celve.username[0]
+            params.symbol='XBTUSD'
             try{
               console.log('开单参数：',JSON.stringify(params))
               const res = await postOrders(params)
@@ -746,11 +784,9 @@
                 // }
               } else {
                 if(res.orderID){
-                  res.forEach(i=>{
                     const message = '止损平仓...'+ ' 时间: ' + moment().format('YYYY-MM-DD HH:mm:ss')
                     celve.actions.unshift(message)
                     console.log(message)
-                  })
                 }else{
                   celve.actions.unshift(JSON.stringify(res))
                   setTimeout( () => {
@@ -775,18 +811,19 @@
             celve.postType = 'update'
             console.log('更新策略，参数:',celve)
             await postLevelPriceCelve(celve)
-            this.$emit('stop')
+            this.stopCelve(celve)
             _this.positionLocks[celve.username[0]]= false
             // this.lockCelve = false
           } catch (e) {
             // userPosition.locked = false
-            this.$emit('stop')
+            this.stopCelve(celve)
             _this.positionLocks[celve.username[0]]= false
           }
           console.timeEnd("策略更新");
           console.timeEnd()
         },
-        async doPartpcCelve({celve,side,qt}){
+        async doPartpcCelve({celve,side,qt,currentPositionChange}){
+          // debugger
           const _this = this
           // console.log('userPosition:',userPosition)
           if(this.positionLocks[celve.username[0]]) {
@@ -804,8 +841,6 @@
               },3000)
               return
             }
-
-
             console.time("挂单")
             console.log('发送开单命令！')
             // debugger
@@ -818,7 +853,7 @@
                 // side:celve.side,
                 side:side ,
                 orderQty:qt,
-                price: side=='Buy' ? (celve.currentPrice + 10):(celve.currentPrice - 10 ) ,
+                price: side=='Buy' ? (celve.currentPrice + celve.levelPrice):(celve.currentPrice - celve.levelPrice ) ,
                 ordType:'Limit',
                 clOrdID:celve._id + celve.currentLevel + moment().format('HHmmss')
               })
@@ -869,7 +904,9 @@
           //更新策略及日志
           console.time("策略更新")
           try {
-            celve.currentPosition = side === 'Buy' ? celve.currentPosition + qt : celve.currentPosition - qt
+            if(currentPositionChange){
+              celve.currentPosition = side === 'Buy' ? celve.currentPosition + qt : celve.currentPosition - qt
+            }
             celve.firstTime = true
             delete celve.state
             celve.postType = 'update'
