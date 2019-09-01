@@ -458,6 +458,10 @@
                  })
                }else{
               // debugger
+             if (item.autoStop === true && item.currentLevel === 0){
+               this.stopCelve(item)
+               return
+             }
              if (item.levelStopType === 'stop' && ( this.currentPrice <= item.buyStopPrice || this.currentPrice >= item.sellStopPrice )){
                this.doPcCelve(item)
                return
