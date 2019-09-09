@@ -11,7 +11,12 @@
     <div class="celve">
       <template v-if="currentCelve && currentCelve.state === true && !isEdit">
         <a-row style="padding: 12px 24px;padding-bottom: 4px" :gutter="16">
-          <a-col :lg="24"><a-button  style="width:100%" @click="stop">停止策略</a-button></a-col>
+          <a-col :lg="12"><a-button  style="width:100%" @click="stop">停止策略</a-button></a-col>
+          <a-col :lg="12">
+            <div style="text-align: center;width: 100%;margin: 4px 0">
+              自动关闭：<a-switch  @change='autoStopChange'v-model="currentCelve.autoStop"/>
+            </div>
+          </a-col>
 <!--          <a-col :lg="12"><a-button style="width:100%"  type="primary" @click="toEdit">修改策略</a-button></a-col>-->
         </a-row>
         <a-row style="padding: 8px 24px;" :gutter="48">
@@ -173,6 +178,9 @@
 </template>
 
 <script>
+  import { reqUsers,  reqOrders, postOrders, postLevelPriceCelve, getLevelPriceCelve,websocketLog } from '@/api'
+
+
 export default {
   name: 'CelvePannel',
   props: {
@@ -188,6 +196,7 @@ export default {
       levelStopTypeValue: 'reduce',
       side: 1,
       isRun: 0,
+      autoStop:null,
       bodyStyle: {
         height: '400px',
         padding: 0,
@@ -232,6 +241,17 @@ export default {
     },
     levelStopTypeChange (e) {
       this.levelStopTypeValue = e.target.value
+    },
+    async autoStopChange(checked){
+      const values = this.currentCelve
+      values.autoStop = checked,
+      values.postType = 'update'
+      try {
+        await postLevelPriceCelve(values)
+        return
+      } catch (e) {
+        console.log(e)
+      }
     },
     start () {
       this.form.validateFields((err, values) => {

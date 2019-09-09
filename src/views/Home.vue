@@ -635,7 +635,6 @@ export default {
 
 <style lang="scss">
   .home{
-
     /*margin: 12px;*/
     /*height: 100%;*/
   }
