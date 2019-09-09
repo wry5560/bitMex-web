@@ -45,6 +45,7 @@
       name: "Serve",
       data(){
           return {
+            isFirstTime:true,
             websock: null,
             users:[],
             setIntervalPingPong: null,
@@ -88,6 +89,7 @@
         this.initWebSocket()
         const _this = this
         await this.getUsers()
+        this.isFirstTime = false
         setInterval(()=>{_this.getCelves('running')},2500)
         setInterval(()=>{_this.levelPriceCelve()},1000)
       },
@@ -149,11 +151,16 @@
           const op2 = [0, 'nomalInfos', 'allUsers', { 'op': 'subscribe', 'args': ['trade:XBTUSD'] }]
           this.websock.send(JSON.stringify(op2))
           // console.log(typeof (op) ,op)
-          this.setIntervalWs()
-          if (this.users.length>0) {
-            this.users.forEach(user=>{
-              this.createdUserWs(user)
-            })
+          if ( ! this.isFirstTime){
+            const _this = this
+            this.setIntervalWs()
+            if (this.users.length>0) {
+              this.users.forEach((user,index)=>{
+                setTimeout(()=>{
+                  _this.createdUserWs(user)
+                },index * 3000)
+              })
+            }
           }
           // let actions = { 'test': '12345' }
           // this.websocketsend(JSON.stringify(actions))
@@ -325,10 +332,14 @@
           try {
             console.log('get users!')
             this.users = await reqUsers()
-            this.users.forEach(user=>{
+            const _this=this
+            this.users.forEach((user,index)=>{
               user.position=[]
               this.positionLocks[user.userName]=false
-              this.createdUserWs(user)
+              setTimeout(()=>{
+                _this.createdUserWs(user)
+                console.log('createdUserWs:'+ user.userName)
+              },index * 3000)
             })
             return
           } catch (err) {

@@ -1,0 +1,219 @@
+<template>
+  <a-card  :headStyle="headStyle" :bodyStyle="bodyStyle">
+    <div slot="title">
+      <div style="display: inline-block">策略操作面板 ( 策略B )</div>
+      <div style="float:right">
+        <a href="/#/" target="_blank">前往策略A</a>
+<!--        <a @click="()=>{this.$router.push({ name: 'home' })}">前往策略A</a>-->
+      </div>
+    </div>
+    <div>
+      <template v-if="currentCelve && currentCelve.state === true && !isEdit">
+        <a-row style="padding: 12px 24px;padding-bottom: 4px" :gutter="16">
+          <a-col :lg="24"><a-button  style="width:100%" @click="stop">停止策略</a-button></a-col>
+<!--          <a-col :lg="12"><a-button style="width:100%"  type="primary" @click="toEdit">修改策略</a-button></a-col>-->
+        </a-row>
+        <a-row style="padding: 8px 24px;" :gutter="48">
+          <a-col :lg="12"><b>运行参数：</b></a-col>
+          <!--<a-col :lg="12">方向：<div style="float: right"><b>{{this.currentCelve.side}}</b></div></a-col>-->
+        </a-row>
+        <a-row style="padding: 0 24px;" :gutter="48">
+          <a-col :lg="12">
+            多单成交均价：<div style="float: right"><b>{{this.currentCelve.buyPrice}}</b></div>
+          </a-col>
+          <a-col :lg="12">
+            多单止盈价：<div style="float: right"><b>{{this.currentCelve.buyStopPrice}}</b></div>
+          </a-col>
+          <a-col :lg="12">
+            空单成交均价：<div style="float: right"><b>{{this.currentCelve.sellPrice}}</b></div>
+          </a-col>
+          <a-col :lg="12">
+            空单止盈价：<div style="float: right"><b>{{this.currentCelve.sellStopPrice}}</b></div>
+          </a-col>
+          <a-col :lg="12">
+            止盈价差：<div style="float: right"><b>{{this.currentCelve.levelPrice}}</b></div>
+          </a-col>
+          <a-col :lg="12">
+            止盈次数：<div style="float: right"><b>{{this.currentCelve.totalTimes}}</b></div>
+          </a-col>
+        </a-row>
+        <div style="padding: 8px 24px;"><b>运行日志：</b></div>
+        <div style="padding: 0 24px;height: 190px;overflow: auto" ref="log">
+          <div v-for="item in currentCelve.actions">{{item}}</div>
+        </div>
+      </template>
+      <template v-else>
+      <a-form  :form="form" >
+          <!--<a-row style="padding-top:12px" >-->
+            <!--<a-col :lg="12" style="text-align: center">-->
+              <!--<a-form-item>-->
+                <!--<template>-->
+                  <!--<a-radio-group name="radioGroup1"-->
+                                 <!--v-decorator="['type',{initialValue:currentCelve ? currentCelve.type : 'Limit'}]"-->
+                                 <!--@change="changeType"-->
+                                 <!--:disabled="isEdit">-->
+                    <!--<a-radio value="Limit">限价单</a-radio>-->
+                    <!--<a-radio value="Market">市价单</a-radio>-->
+                  <!--</a-radio-group>-->
+                <!--</template>-->
+              <!--</a-form-item>-->
+            <!--</a-col>-->
+            <!--<a-col :lg="12" style="text-align: center" >-->
+              <!--<a-form-item>-->
+              <!--<template>-->
+                <!--<a-radio-group name="radioGroup2"-->
+                               <!--v-decorator="['side',{initialValue:currentCelve ? currentCelve.side : 'Buy'}]"-->
+                               <!--:disabled="isEdit">-->
+                  <!--<a-radio value="Buy">多单</a-radio>-->
+                  <!--<a-radio value="Sell">空单</a-radio>-->
+                <!--</a-radio-group>-->
+              <!--</template>-->
+              <!--</a-form-item>-->
+            <!--</a-col>-->
+          <!--</a-row>-->
+
+          <a-row style="padding: 24px;padding-bottom: 0px" >
+            <a-col :lg="24">
+              <a-form-item label="挂单基准价格" :labelCol="{ span: 6 }" :wrapperCol="{ span: 18 }">
+                <a-input-number
+                  placeholder="请输入挂单基准价格"
+                  :min="1"
+                  v-decorator="['startPrice',{rules: [{ required: true, message: '请输入挂单基准价格',type:'number'}],initialValue:currentCelve ? currentCelve.startPrice : 1}]"
+                  style="width:100%"
+                  :disabled=" isEdit"
+                />
+              </a-form-item>
+            </a-col>
+            <a-col :lg="24">
+              <a-form-item label="多单挂单下浮" :labelCol="{ span: 6 }" :wrapperCol="{ span: 18 }">
+                <a-input-number
+                  placeholder="请输入多单挂单下浮价格"
+                  :min="1"
+                  v-decorator="['buyOffset',{rules: [{ required: true, message: '请输入多单挂单下浮价格',type:'number'}],initialValue:currentCelve ? currentCelve.buyOffset : 2}]"
+                  style="width:100%"
+                  :disabled=" isEdit"
+                />
+              </a-form-item>
+            </a-col>
+            <a-col :lg="24">
+              <a-form-item label="空单挂单上浮" :labelCol="{ span: 6 }" :wrapperCol="{ span: 18 }">
+                <a-input-number
+                  placeholder="请输入空单挂单上浮价格"
+                  :min="1"
+                  v-decorator="['sellOffset',{rules: [{ required: true, message: '请输入空单挂单上浮价格',type:'number'}],initialValue:currentCelve ? currentCelve.sellOffset : 2}]"
+                  style="width:100%"
+                  :disabled=" isEdit"
+                />
+              </a-form-item>
+            </a-col>
+            <a-col :lg="24">
+              <a-form-item label="仓位" :labelCol="{ span: 6 }" :wrapperCol="{ span: 18 }">
+                <a-input-number
+                  placeholder="请输入仓位"
+                  :min="1"
+                  v-decorator="['qt',{rules: [{ required: true, message: '请输入仓位',type:'number'}],initialValue:currentCelve ? currentCelve.qt : 1}]"
+                  style="width:100%"
+                />
+              </a-form-item>
+            </a-col>
+
+            <a-col :lg="24">
+              <a-form-item label="止盈价差" :labelCol="{ span: 6 }" :wrapperCol="{ span: 18 }">
+                <a-input-number
+                  placeholder="请输入止盈价差"
+                  :min="1"
+                  v-decorator="['levelPrice',{rules: [{ required: true, message: '请输入止盈价差',type:'number'}],initialValue:currentCelve ? currentCelve.levelPrice : 15}]"
+                  style="width:100%"
+                />
+              </a-form-item>
+            </a-col>
+          </a-row>
+      </a-form>
+      <a-row style="padding: 12px 24px">
+        <a-button v-if="!currentCelve" type="primary" style="width:100%" @click="start">开始策略</a-button>
+        <a-row v-if="currentCelve && currentCelve.state === true && isEdit " :gutter="16">
+          <a-col :lg="12"><a-button  style="width:100%" @click="cancelEdit">取 消</a-button></a-col>
+          <a-col :lg="12"><a-button style="width:100%"  type="primary" @click="updateCelve">保存修改</a-button></a-col>
+        </a-row>
+      </a-row>
+      </template>
+    </div>
+  </a-card>
+</template>
+
+<script>
+export default {
+  name: 'CelvePannel',
+  props: {
+    runState: Boolean,
+    celves: Array,
+    user: Object
+  },
+  data () {
+    return {
+      form: this.$form.createForm(this),
+      isEdit: false,
+      type: 1,
+      side: 1,
+      isRun: 0,
+      bodyStyle: {
+        height: '400px',
+        padding: 0,
+        overflow: 'auto'
+      },
+      headStyle: {
+        'text-align': 'left'
+      }
+    }
+  },
+  computed: {
+    currentCelve () {
+      for (let i = 0; i < this.celves.length; i++) {
+        const index = this.celves[i].username.findIndex(i => i === this.user.userName)
+        if (index > -1) {
+          return this.celves[i]
+        }
+      }
+      return null
+    }
+  },
+
+  methods: {
+    changeType (e) {
+      this.type = e.target.value
+    },
+    start () {
+      this.form.validateFields((err, values) => {
+        if (!err) {
+          this.$emit('insert', values)
+        }
+      })
+    },
+    stop () {
+      this.$emit('stop', this.currentCelve)
+    },
+    toEdit () {
+      this.isEdit = true
+    },
+    updateCelve(){
+      this.form.validateFields((err, values) => {
+        if (!err) {
+          const data={
+            ...this.currentCelve,
+            ...values
+          }
+          this.$emit('update', data)
+          this.isEdit = false
+        }
+      })
+    },
+    cancelEdit () {
+      this.isEdit = false
+    }
+  }
+}
+</script>
+
+<style scoped>
+
+</style>

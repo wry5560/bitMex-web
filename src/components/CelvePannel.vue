@@ -1,11 +1,12 @@
 <template>
   <a-card  :headStyle="headStyle" :bodyStyle="bodyStyle">
     <div slot="title">
-<!--      <div style="display: inline-block">策略操作面板 ( 策略A )</div>-->
-      <div style="display: inline-block">策略操作面板</div>
-<!--      <div style="float:right">-->
+      <div style="display: inline-block">策略操作面板 ( 策略A )</div>
+<!--      <div style="display: inline-block">策略操作面板</div>-->
+      <div style="float:right">
 <!--        <a @click="()=>{this.$router.push({ name: 'CelveB' })}">前往策略B</a>-->
-<!--      </div>-->
+        <a href="/#/celveB/" target="_blank">前往策略B</a>
+      </div>
     </div>
     <div class="celve">
       <template v-if="currentCelve && currentCelve.state === true && !isEdit">

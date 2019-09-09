@@ -442,17 +442,17 @@ export default {
       try {
         console.log('get users!')
         const accounts = await reqUsers()
-        if (this.$store.state.user.userName === 'admin') {
-          this.users = accounts
-        } else {
-          // const aaa = this.$store.state.user.accounts
+        // if (this.$store.state.user.userName === 'admin') {
+        //   this.users = accounts
+        // } else {
+        // const aaa = this.$store.state.user.accounts
+        // debugger
+        this.$store.state.user.accounts.forEach(account => {
           // debugger
-          this.$store.state.user.accounts.forEach(account => {
-            // debugger
-            const index = accounts.findIndex(item => item.email === account)
-            if (index > -1) this.users.push(accounts[index])
-          })
-        }
+          const index = accounts.findIndex(item => item.email === account)
+          if (index > -1) this.users.push(accounts[index])
+        })
+        // }
       } catch (err) {
         console.log(err)
       }
@@ -592,6 +592,7 @@ export default {
       values.buyStopPrice = values.startPrice - (values.level + 1) * values.levelPrice
       values.sellStopPrice = values.startPrice + (values.level + 1) * values.levelPrice
       values.currentPosition = values.startPosition
+      values.startTime = moment().format('YYYY-MM-DD HH:mm')
       try {
         await postLevelPriceCelve(values)
         this.getCelves('running')
