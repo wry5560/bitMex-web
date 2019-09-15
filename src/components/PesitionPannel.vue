@@ -8,31 +8,31 @@
           </a-badge>
           <a-row style="padding: 0 16px">
             <a-col :lg="2"><div style="text-align: left;font-weight: bold;">合约</div></a-col>
-            <a-col :lg="2" ><div class="title">目前仓位数量</div></a-col>
+            <a-col :lg="3" ><div class="title">目前仓位数量</div></a-col>
             <a-col :lg="2" class="title">价值(XBT)</a-col>
             <a-col :lg="2" class="title">开仓价格</a-col>
             <a-col :lg="2" class="title">标记价格</a-col>
             <a-col :lg="3" class="title">强平价格</a-col>
             <a-col :lg="2" class="title">保证金</a-col>
-            <a-col :lg="3" class="title">未实现盈亏</a-col>
-            <a-col :lg="2" class="title">已实现盈亏</a-col>
-            <a-col :lg="4" class="title">平仓</a-col>
+            <a-col :lg="4" class="title">未实现盈亏</a-col>
+            <a-col :lg="4" class="title">已实现盈亏</a-col>
+            <!--<a-col :lg="4" class="title">平仓</a-col>-->
           </a-row>
           <div style="height: 375px;overflow: auto">
             <a-row style="padding: 8px 16px" v-for="(item,index) in positionC" :key="item.symbol" :class="rowClass(item,index)">
               <a-col :lg="2"><div style="text-align: left;"><b>{{item.symbol}}</b></div></a-col>
-              <a-col :lg="2" ><div :class="item.avgEntryPrice>=item.liquidationPrice ? 'content green':'content red'"><b>{{item.currentQty}}</b></div></a-col>
+              <a-col :lg="3" ><div :class="item.avgEntryPrice>=item.liquidationPrice ? 'content green':'content red'"><b>{{item.currentQty}}</b></div></a-col>
               <a-col :lg="2" class="content">{{item.homeNotional.toFixed(6).slice(0,-2)}}</a-col>
               <a-col :lg="2" class="content">{{item.avgEntryPrice.toFixed(3).slice(0,-1)}}</a-col>
               <a-col :lg="2" class="content">{{item.markPrice.toFixed(3).slice(0,-1)}}</a-col>
               <a-col :lg="3" class="content red"><b>{{item.liquidationPrice.toFixed(3).slice(0,-1)}}</b></a-col>
               <a-col :lg="2" class="content">{{(item.maintMargin/100000000).toFixed(6).slice(0,-2)}}</a-col>
-              <a-col :lg="3" :class="item.unrealisedPnl>=0 ? 'content green':'content red'"><b>{{(item.unrealisedPnl/100000000).toFixed(6).slice(0,-2)}}</b></a-col>
-              <a-col :lg="2" :class="item.realisedPnl>=0 ? 'content green':'content red'"><b>{{(item.realisedPnl/100000000).toFixed(6).slice(0,-2)}}</b></a-col>
-              <a-col :lg="4" class="content">
-                <a-col :lg="12"><a-button size="small"  @click="emitPc(item.symbol,pcPrice[index])">平仓</a-button></a-col>
-                <a-col :lg="12"><a-input-number v-model="pcPrice[index]" placeholder="市价平仓..." size="small"/></a-col>
-              </a-col>
+              <a-col :lg="4" :class="item.unrealisedPnl>=0 ? 'content green':'content red'"><b>{{(item.unrealisedPnl/100000000).toFixed(6).slice(0,-2)}}</b></a-col>
+              <a-col :lg="4" :class="item.realisedPnl>=0 ? 'content green':'content red'"><b>{{(item.realisedPnl/100000000).toFixed(6).slice(0,-2)}}</b></a-col>
+              <!--<a-col :lg="4" class="content">-->
+                <!--<a-col :lg="12"><a-button size="small"  @click="emitPc(item.symbol,pcPrice[index])">平仓</a-button></a-col>-->
+                <!--<a-col :lg="12"><a-input-number v-model="pcPrice[index]" placeholder="市价平仓..." size="small"/></a-col>-->
+              <!--</a-col>-->
             </a-row>
           </div>
         </a-tab-pane>
@@ -44,10 +44,10 @@
           <a-row style="padding: 0 16px">
             <a-col :lg="2"><div style="text-align: left;font-weight: bold;">合约</div></a-col>
             <a-col :lg="2" ><div class="title">数量</div></a-col>
-            <a-col :lg="3" class="title">委托价格</a-col>
+            <a-col :lg="2" class="title">委托价格</a-col>
             <a-col :lg="2" class="title">完全成交</a-col>
             <a-col :lg="2" class="title">剩余</a-col>
-            <a-col :lg="3" class="title">委托价值(XBT)</a-col>
+            <a-col :lg="4" class="title">委托价值(XBT)</a-col>
 <!--            <a-col :lg="3" class="title">成交价格</a-col>-->
             <a-col :lg="2" class="title">类型</a-col>
             <a-col :lg="2" class="title">状态</a-col>
@@ -58,7 +58,7 @@
           <a-row style="padding: 8px 16px" class="even-rows ">
             <a-col :lg="2"><div style="text-align: left;font-weight: bold;">概况</div></a-col>
             <a-col :lg="2" ><div class="title">---</div></a-col>
-            <a-col :lg="3" class="title">---</a-col>
+            <a-col :lg="2" class="title">---</a-col>
             <a-col :lg="2" class="title">---</a-col>
             <a-col :lg="2" class="title">---</a-col>
             <a-col :lg="3" class="title">{{totalValue}}</a-col>
@@ -71,10 +71,10 @@
           <a-row style="padding: 8px 16px" v-for="(item,index) in orderC" :key="item.orderID" :class="rowClass(item,index+1)" >
             <a-col :lg="2"><div style="text-align: left;font-weight: bold;">{{item.symbol}}</div></a-col>
             <a-col :lg="2" ><div :class="item.side =='Buy' ? 'content green':'content red'"><b>{{item.orderQty}}</b></div></a-col>
-            <a-col :lg="3" class="content">{{item.price}}</a-col>
+            <a-col :lg="2" class="content">{{item.price}}</a-col>
             <a-col :lg="2" :class="item.side =='Buy' ? 'content green':'content red'"><b>{{item.cumQty}}</b></a-col>
             <a-col :lg="2" class="content">{{item.leavesQty}}</a-col>
-            <a-col :lg="3" class="content">{{(item.symbol==='XBTUSD' ? item.orderQty/item.price : item.orderQty* item.price).toFixed(6).slice(0,-2)}}</a-col>
+            <a-col :lg="4" class="content">{{(item.symbol==='XBTUSD' ? item.orderQty/item.price : item.orderQty* item.price).toFixed(6).slice(0,-2)}}</a-col>
 <!--            <a-col :lg="3" class="content">-&#45;&#45;</a-col>-->
             <a-col :lg="2" class="content">{{item.ordType}}</a-col>
             <a-col :lg="2" class="content">{{item.ordStatus}}</a-col>

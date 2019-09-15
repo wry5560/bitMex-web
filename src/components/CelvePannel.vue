@@ -56,11 +56,11 @@
       </template>
       <template v-else>
       <a-form  :form="form" >
-          <a-row style=" padding: 0px 24px; padding-top:12px" >
+          <a-row style=" padding: 0px 12px; padding-top:12px" >
 <!--            <a-col :lg="6" style="text-align: center">-->
 <!--              平仓策略：-->
 <!--            </a-col>-->
-            <a-col :lg="12" style="text-align: center">
+            <a-col :lg="8" style="text-align: center">
               <a-form-item>
                 <template>
                   <a-radio-group name="radioGroup1"
@@ -74,7 +74,7 @@
                 </template>
               </a-form-item>
             </a-col>
-            <a-col :lg="12"  style="text-align: center">
+            <a-col :lg="5"  style="text-align: center">
               <a-form-item label="是否减仓"  :labelCol="{ span: 12 }" :wrapperCol="{ span: 12 }">
                 <a-switch   v-decorator="['isReduce',{initialValue:currentCelve ? currentCelve.isReduce : isReduce}]"
                             @change='isReduceChange'
@@ -94,22 +94,22 @@
             <!--                </template>-->
 <!--              </a-form-item>-->
 <!--            </a-col>-->
-            <a-col :lg="24" style="text-align: center" >
+            <a-col :lg="11" style="text-align: center" >
               <a-form-item >
               <template>
                 <a-radio-group name="radioGroup2"
                                v-decorator="['side',{initialValue:currentCelve ? currentCelve.side : 'Both'}]"
                                :disabled="isEdit">
                   <a-radio value="Both">双向挂单</a-radio>
-                  <a-radio value="Buy">只挂多单</a-radio>
-                  <a-radio value="Sell">只挂空单</a-radio>
+                  <a-radio value="Buy">单边多</a-radio>
+                  <a-radio value="Sell">单边空</a-radio>
                 </a-radio-group>
               </template>
               </a-form-item>
             </a-col>
           </a-row>
           <a-row style="padding: 0px 24px" >
-            <a-col :lg="24">
+            <a-col :lg="12">
               <a-form-item label="基准价格" :labelCol="{ span: 7 }" :wrapperCol="{ span: 17 }">
                 <a-input-number
                   placeholder="请输入基准价格"
@@ -120,7 +120,7 @@
                 />
               </a-form-item>
             </a-col>
-            <a-col :lg="24">
+            <a-col :lg="12">
               <a-form-item label="仓位" :labelCol="{ span: 7 }" :wrapperCol="{ span: 17 }">
                 <a-input-number
                   placeholder="请输入仓位"
@@ -130,7 +130,7 @@
                 />
               </a-form-item>
             </a-col>
-            <a-col :lg="24">
+            <a-col :lg="12">
               <a-form-item label="底仓" :labelCol="{ span: 7 }" :wrapperCol="{ span: 17 }">
                 <a-input-number
                   placeholder="请输入底仓"
@@ -139,7 +139,7 @@
                 />
               </a-form-item>
             </a-col>
-            <a-col :lg="24">
+            <a-col :lg="12">
               <a-form-item label="开单层级" :labelCol="{ span: 7 }" :wrapperCol="{ span: 17 }">
                 <a-input-number
                   placeholder="请输入开单层级"
@@ -150,23 +150,44 @@
                 />
               </a-form-item>
             </a-col>
-            <a-col :lg="24" v-if="isReduce">
+
+            <a-col :lg="12">
+              <a-form-item label="层级价差" :labelCol="{ span: 7 }" :wrapperCol="{ span: 17 }">
+                <a-input-number
+                  placeholder="请输入层级价差"
+                  :min="1"
+                  v-decorator="['levelPrice',{rules: [{ required: true, message: '请输入层级价差',type:'number'}],initialValue:currentCelve ? currentCelve.levelPrice : 1}]"
+                  style="width:100%"
+                />
+              </a-form-item>
+            </a-col>
+            <template v-if="levelStopTypeValue==='stop'">
+              <a-col :lg="12">
+                <a-form-item label="向上平仓价" :labelCol="{ span: 7 }" :wrapperCol="{ span: 17 }">
+                  <a-input-number
+                    placeholder="请输入向上平仓价"
+                    v-decorator="['sellStopPrice',{rules: [{ required: true, message: '请输入向上平仓价',type:'number'}],initialValue:currentCelve ? currentCelve.sellStopPrice : sellStopPrice}]"
+                    style="width:100%"
+                  />
+                </a-form-item>
+              </a-col>
+              <a-col :lg="12">
+                <a-form-item label="向下平仓价" :labelCol="{ span: 7 }" :wrapperCol="{ span: 17 }">
+                  <a-input-number
+                    placeholder="请输入向下平仓价"
+                    v-decorator="['buyStopPrice',{rules: [{ required: true, message: '请输入向下平仓价',type:'number'}],initialValue:currentCelve ? currentCelve.buyStopPrice : buyStopPrice}]"
+                    style="width:100%"
+                  />
+                </a-form-item>
+              </a-col>
+            </template>
+            <a-col :lg="12" v-if="isReduce">
               <a-form-item label="减仓层级" :labelCol="{ span: 7 }" :wrapperCol="{ span: 17 }">
                 <a-input-number
                   placeholder="请输入减仓层级"
                   :min="0"
                   :precision="0"
                   v-decorator="['stopLevel',{rules: [{ required: true, message: '请输入减仓层级',type:'number'}],initialValue:currentCelve ? currentCelve.stopLevel : 0}]"
-                  style="width:100%"
-                />
-              </a-form-item>
-            </a-col>
-            <a-col :lg="24">
-              <a-form-item label="层级价差" :labelCol="{ span: 7 }" :wrapperCol="{ span: 17 }">
-                <a-input-number
-                  placeholder="请输入层级价差"
-                  :min="1"
-                  v-decorator="['levelPrice',{rules: [{ required: true, message: '请输入层级价差',type:'number'}],initialValue:currentCelve ? currentCelve.levelPrice : 1}]"
                   style="width:100%"
                 />
               </a-form-item>
@@ -204,6 +225,8 @@ export default {
       side: 1,
       isRun: 0,
       isReduce: 0,
+      sellStopPrice:1000000,
+      buyStopPrice:0,
       autoStop: null,
       bodyStyle: {
         height: '400px',

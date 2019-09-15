@@ -1,21 +1,21 @@
 <template>
   <div class="home">
-    <a-row :gutter="16" style="margin-bottom: 16px">
-      <a-col :lg="12">
-        <user-pannel :users="users" :marginData="userData.margin" :walletHistory="walletHistory"  @select="changeCurrentUser"></user-pannel>
+    <a-row :gutter="8" style="margin-bottom: 8px">
+      <a-col :lg="10">
+        <user-pannel  :currentPosition="positionData" :users="users" :marginData="userData.margin" :walletHistory="walletHistory"  @closePosition="pcConfirm" @createPosition='createPosition' @select="changeCurrentUser"></user-pannel>
       </a-col>
       <a-col :lg="5">
         <order-book-pannel :price="orderBookProps.price" :side="orderBookProps.side" :sellOrder="wsDatas.orders.sell" :buyOrder="wsDatas.orders.buy"/>
       </a-col>
-      <a-col :lg="7">
+      <a-col :lg="9">
         <trade-pannel :tradeTableData="wsDatas.trade"/>
       </a-col>
     </a-row>
-    <a-row :gutter="16">
-      <a-col :lg="17">
-        <pesition-pannel :position="positionData" :order="orderData" :orderHistory="orderHistory" :execution="executionData" @closePosition="pcConfirm" @cancelPosition="cancelConfirm"></pesition-pannel>
+    <a-row :gutter="8">
+      <a-col :lg="15">
+        <pesition-pannel :position="positionData" :order="orderData" :orderHistory="orderHistory" :execution="executionData"  @cancelPosition="cancelConfirm"></pesition-pannel>
       </a-col>
-      <a-col :lg="7">
+      <a-col :lg="9">
         <celve-pannel @insert="insertCelve" @stop="stopCelve" @update="updateCelve" :celves="celves" :user="currentUser"></celve-pannel>
       </a-col>
     </a-row>
@@ -578,6 +578,23 @@ export default {
       }
       postOrders(params)
     },
+    createPosition (datas){
+      const symbol = datas[0]
+      const price = datas[1]
+      const position = datas[2]
+      const side = datas[3]
+      const params = {
+        username: this.currentUser.userName,
+        postType: 'create',
+        symbol: symbol,
+        price: price,
+        ordType:price ? 'Limit' :'Market',
+        orderQty:position,
+        side:side
+      }
+      postOrders(params)
+    },
+
     async insertCelve (values) {
       values.username = this.currentUser.userName
       if (values.type === 'Market')values.startPrice = this.wsDatas.trade[0].price

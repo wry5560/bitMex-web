@@ -15,7 +15,7 @@
         <span style="display: inline-block;width: calc(100% - 120px);height: 400px;float: right">
           <template>
             <a-tabs :animated="false">
-              <a-tab-pane tab="账户余额" key="1">
+              <a-tab-pane tab="账户信息" key="1">
                 <a-row class="even-rows wapper">
                     <a-col :lg="12"><b>钱包余额:</b></a-col>
                   <a-col :lg="12" style="text-align: right"><b>{{(marginData.walletBalance/100000000).toFixed(6).slice(0,-2)}}</b></a-col>
@@ -43,6 +43,39 @@
                 <a-row class="even-rows wapper">
                   <a-col :lg="12"><b>可用余额:</b></a-col>
                   <a-col :lg="12" style="text-align: right"><b>{{(marginData.availableMargin/100000000).toFixed(6).slice(0,-2)}}</b></a-col>
+                </a-row>
+
+                <a-row class="wapper" style="margin-top: 8px">
+                  <a-col :lg="24">
+                    <span><b>当前持仓:</b></span>
+                    <div style="float: right" :class="positionClass"><b>{{currentPosition.length >0 ? currentPosition[0].currentQty : '0'}}</b></div>
+                  </a-col>
+                  <!--<a-col :lg="12">-->
+                    <!--<div style="text-align: left">-->
+
+                    <!--</div>-->
+                  <!--</a-col>-->
+                </a-row>
+                <a-row class="wapper":gutter="16">
+                  <a-col :lg="4">
+                    <b>开单仓位:</b>
+                  </a-col>
+                  <a-col :lg="8">
+                      <a-input size="small" placeholder="请输入开单仓位" v-model="position"/>
+                  </a-col>
+                  <a-col :lg="4">
+                    <b>开单限价:</b>
+                  </a-col>
+                  <a-col :lg="8">
+                    <div>
+                      <a-input size="small" placeholder="请输入开单限价" v-model="price"/>
+                    </div>
+                  </a-col>
+                  <a-col :lg="24" style="text-align: right;margin-top: 12px">
+                    <a-button type="primary"size="small" style="margin-right: 8px" @click="buy">买入</a-button>
+                    <a-button size="small"  style="margin-right: 8px"@click="sell">卖出</a-button>
+                    <a-button size="small" @click="pc">市价平仓</a-button>
+                  </a-col>
                 </a-row>
               </a-tab-pane>
               <a-tab-pane tab="充提币记录" key="2">
@@ -83,11 +116,13 @@ export default {
   props: {
     users: Array,
     marginData: Object,
-    walletHistory: Array
-
+    walletHistory: Array,
+    currentPosition:Array,
   },
   data () {
     return {
+      position:null,
+      price:null,
       bodyStyle: {
         height: '400px',
         padding: 0,
@@ -108,6 +143,16 @@ export default {
       } else {
         return { email: '' }
       }
+    },
+    positionClass() {
+      if (this.currentPosition.length == 0) {
+        return
+      }
+      if(this.currentPosition[0].currentQty > 0){
+        return 'green'
+      }else {
+        return 'red'
+      }
     }
   },
   methods: {
@@ -125,6 +170,24 @@ export default {
       //   classNames = classNames + ' ' + 'sell-trade'
       // }
       return classNames
+    },
+    buy(){
+      this.$emit('createPosition',['XBTUSD',this.price,this.position,'Buy'])
+      this.$info({
+        title:'买入指令已发送，等待交易所执行！'
+      })
+    },
+    sell(){
+      this.$emit('createPosition',['XBTUSD',this.price,this.position,'Sell'])
+      this.$info({
+        title:'卖出指令已发送，等待交易所执行！'
+      })
+    },
+    pc(){
+      this.$emit('closePosition',['XBTUSD'])
+      this.$info({
+        title:'平仓指令已发送，等待交易所执行！'
+      })
     }
   },
   watch: {
@@ -145,7 +208,14 @@ export default {
   text-align: right;
   font-weight: bold;
 }
+
 .content{
   text-align: right;
+}
+.red{
+  color: #ff4e45
+}
+.green{
+  color: #00a02e;
 }
 </style>
