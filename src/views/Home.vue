@@ -578,7 +578,7 @@ export default {
       }
       postOrders(params)
     },
-    createPosition (datas){
+    createPosition (datas) {
       const symbol = datas[0]
       const price = datas[1]
       const position = datas[2]
@@ -588,9 +588,9 @@ export default {
         postType: 'create',
         symbol: symbol,
         price: price,
-        ordType:price ? 'Limit' :'Market',
-        orderQty:position,
-        side:side
+        ordType: price ? 'Limit' : 'Market',
+        orderQty: position,
+        side: side
       }
       postOrders(params)
     },
@@ -606,10 +606,10 @@ export default {
       // values.preStopPrice = values.side === 'Buy' ? values.stopPrice + values.levelPrice : values.stopPrice - values.levelPrice
       values.postType = 'insert'
       values.buyQt = values.sellQt = values.qt
-      values.buyStopPrice = values.startPrice - (values.level + 1) * values.levelPrice
-      values.sellStopPrice = values.startPrice + (values.level + 1) * values.levelPrice
+      // values.buyStopPrice = values.startPrice - (values.level + 1) * values.levelPrice
+      // values.sellStopPrice = values.startPrice + (values.level + 1) * values.levelPrice
       values.currentPosition = values.startPosition
-      values.startTime = moment().format('YYYY-MM-DD HH:mm')
+      values.startTime = '策略暂未开启！'
       try {
         await postLevelPriceCelve(values)
         this.getCelves('running')
@@ -620,14 +620,17 @@ export default {
     },
     async updateCelve (values) {
       // if (values.currentLevel >1) {
-      values.prePrice = values.currentPrice + values.levelPrice
-      values.nextPrice = values.currentPrice - values.levelPrice
+      // values.prePrice = values.currentPrice + values.levelPrice
+      // values.nextPrice = values.currentPrice - values.levelPrice
       // }
       // values.prePrice = values.side === 'Buy' ? values.currentPrice + values.levelPrice : values.currentPrice - values.levelPrice
       // values.nextPrice = values.side === 'Buy' ? values.currentPrice - values.levelPrice : values.currentPrice + values.levelPrice
       // values.stopPrice = values.side === 'Buy' ? values.prePrice + values.levelPrice : values.prePrice - values.levelPrice
       // values.preStopPrice = values.side === 'Buy' ? values.stopPrice + values.levelPrice : values.stopPrice - values.levelPrice
       values.postType = 'update'
+      if (!values.firstTime) {
+        values.updated = true
+      }
       values.actions.unshift('策略更新...' + ' ' + moment().format('YYYY-MM-DD HH:mm:ss'))
       try {
         await postLevelPriceCelve(values)

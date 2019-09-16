@@ -11,13 +11,13 @@
     <div class="celve">
       <template v-if="currentCelve && currentCelve.state === true && !isEdit">
         <a-row style="padding: 12px 24px;padding-bottom: 4px" :gutter="16">
-          <a-col :lg="12"><a-button  style="width:100%" @click="stop">停止策略</a-button></a-col>
-          <a-col :lg="12">
+          <a-col :lg="8"><a-button  style="width:100%" @click="stop">停止策略</a-button></a-col>
+          <a-col :lg="8"><a-button style="width:100%"  type="primary" @click="toEdit">修改策略</a-button></a-col>
+          <a-col :lg="8">
             <div style="text-align: center;width: 100%;margin: 4px 0">
               自动关闭：<a-switch  @change='autoStopChange' :value="currentCelve.autoStop"/>
             </div>
           </a-col>
-<!--          <a-col :lg="12"><a-button style="width:100%"  type="primary" @click="toEdit">修改策略</a-button></a-col>-->
         </a-row>
         <a-row style="padding: 8px 24px;" :gutter="48">
           <a-col :lg="12"><b>运行参数：</b></a-col>
@@ -30,8 +30,11 @@
           <a-col :lg="12">
             每层仓位：<div style="float: right"><b>{{this.currentCelve.qt}}</b></div>
           </a-col>
+<!--          <a-col :lg="12">-->
+<!--            下一级开单价：<div style="float: right"><b>{{this.currentCelve.nextPrice}}</b></div>-->
+<!--          </a-col>-->
           <a-col :lg="12">
-            下一级开单价：<div style="float: right"><b>{{this.currentCelve.nextPrice}}</b></div>
+            总层级：<div style="float: right"><b>{{this.currentCelve.level}}</b></div>
           </a-col>
           <a-col :lg="12">
             当前层级：<div style="float: right"><b>{{this.currentCelve.currentLevel}}</b></div>
@@ -39,20 +42,38 @@
           <a-col :lg="12">
             层级价差：<div style="float: right"><b>{{this.currentCelve.levelPrice}}</b></div>
           </a-col>
-          <a-col :lg="12">
-            总层级：<div style="float: right"><b>{{this.currentCelve.level}}</b></div>
-          </a-col>
-          <a-col :lg="12" >
+          <a-col :lg="12" v-if="currentCelve.isReduce">
             减仓层级：<div style="float: right"><b>{{this.currentCelve.stopLevel}}</b></div>
           </a-col>
+          <template  v-if="currentCelve.levelStopType === 'stop'">
+            <a-col :lg="12">
+              向上平仓价：<div style="float: right"><b>{{this.currentCelve.sellStopPrice}}</b></div>
+            </a-col>
+            <a-col :lg="12">
+              向下平仓价：<div style="float: right"><b>{{this.currentCelve.buyStopPrice}}</b></div>
+            </a-col>
+          </template>
           <a-col :lg="12">
-            总成交次数：<div style="float: right"><b>{{this.currentCelve.totalTimes}}</b></div>
+            策略启动时间：<div style="float: right"><b>{{this.currentCelve.startTime}}</b></div>
           </a-col>
         </a-row>
-        <div style="padding: 8px 24px;"><b>运行日志：</b></div>
-        <div style="padding: 0 24px;width:98%; height: 180px;overflow: auto" ref="log">
-          <div v-for="(item,index) in currentCelve.actions" :key="index">{{item}}</div>
-        </div>
+        <a-row :gutter="8">
+          <a-col :lg="14">
+            <div style="padding: 8px 24px;padding-right: 0"><b>运行日志：</b></div>
+            <div style="padding: 0 24px;padding-right: 0;width:98%; height:170px;overflow: auto" ref="log">
+              <div v-for="(item,index) in currentCelve.actions" :key="index">{{item}}</div>
+            </div>
+          </a-col>
+          <a-col :lg="10">
+            <div style="padding: 8px 24px;padding-left: 0"><b>成交统计：</b></div>
+            <div style="padding: 0 24px;width:98%;padding-left: 0; height:170px;overflow: auto" >
+              <div>总成交次数：<div style="float: right"><b>{{this.currentCelve.totalTimes}}</b></div></div>
+              <div v-for="(item,index) in currentCelve.dayTradeTimes" :key="index">
+                {{item.date}}：<div style="float: right"><b>{{item.times}}</b></div>
+              </div>
+            </div>
+          </a-col>
+        </a-row>
       </template>
       <template v-else>
       <a-form  :form="form" >
@@ -66,7 +87,7 @@
                   <a-radio-group name="radioGroup1"
                                  v-decorator="['levelStopType',{initialValue:currentCelve ? currentCelve.levelStopType : levelStopTypeValue}]"
                                  @change="levelStopTypeChange"
-                                 :disabled="isEdit">
+                                >
                     <a-radio value="normal">普通模式</a-radio>
 <!--                                  <a-radio value="reduce">减仓模式</a-radio>-->
                     <a-radio value="stop">平仓模式</a-radio>
@@ -136,6 +157,7 @@
                   placeholder="请输入底仓"
                   v-decorator="['startPosition',{rules: [{ required: true, message: '请输入底仓',type:'number'}],initialValue:currentCelve ? currentCelve.startPosition : 0}]"
                   style="width:100%"
+                  :disabled="isEdit"
                 />
               </a-form-item>
             </a-col>
@@ -225,8 +247,8 @@ export default {
       side: 1,
       isRun: 0,
       isReduce: 0,
-      sellStopPrice:1000000,
-      buyStopPrice:0,
+      sellStopPrice: 1000000,
+      buyStopPrice: 0,
       autoStop: null,
       bodyStyle: {
         height: '400px',

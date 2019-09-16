@@ -48,7 +48,7 @@
                 <a-row class="wapper" style="margin-top: 8px">
                   <a-col :lg="24">
                     <span><b>当前持仓:</b></span>
-                    <div style="float: right" :class="positionClass"><b>{{currentPosition.length >0 ? currentPosition[0].currentQty : '0'}}</b></div>
+                    <div style="float: right" :class="positionClass"><b>{{currentPosition.length >0 ? currentPosition[0].currentQty + ' [' +currentPosition[0].symbol + ']': '0'}}</b></div>
                   </a-col>
                   <!--<a-col :lg="12">-->
                     <!--<div style="text-align: left">-->
@@ -56,7 +56,7 @@
                     <!--</div>-->
                   <!--</a-col>-->
                 </a-row>
-                <a-row class="wapper":gutter="16">
+                <a-row class="wapper" :gutter="16">
                   <a-col :lg="4">
                     <b>开单仓位:</b>
                   </a-col>

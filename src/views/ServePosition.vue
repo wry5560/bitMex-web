@@ -127,7 +127,9 @@
         initWebSocket () { // 初始化weosocket
           if (!this.websock) {
             console.log('建立websocket连接')
-            websocketLog('建立websocket连接')
+            if(!isTest){
+              websocketLog('建立websocket连接')
+            }
             const wsuri =isTest ?  'wss://testnet.bitmex.com/realtimemd' : 'wss://www.bitmex.com/realtimemd'
             // const wsuri = 'wss://www.bitmex.com/realtimemd'
             this.websock = new WebSocket(wsuri)
@@ -137,12 +139,16 @@
             this.websock.onclose = this.websocketclose
           } else {
             console.log('websocket已存在')
-            websocketLog('websocket已存在')
+            if(!isTest){
+              websocketLog('websocket已存在')
+            }
           }
         },
         websocketonopen () { // 连接建立之后执行send方法发送数据
           console.log('websocket已连接')
-          websocketLog('websocket已连接')
+          if(!isTest){
+            websocketLog('websocket已连接')
+          }
           // const op = { 'op': 'subscribe', 'args': ['trade:XBTUSD'] }
           // this.websocketsend(JSON.stringify(op))
           // this.websock.send(op)
@@ -158,7 +164,7 @@
               this.users.forEach((user,index)=>{
                 setTimeout(()=>{
                   _this.createdUserWs(user)
-                },index * 3000)
+                },index * 2000)
               })
             }
           }
@@ -168,7 +174,10 @@
         websocketonerror (e) { // 连接建立失败重连
           clearInterval(this.setIntervalPingPong)
           console.log('链接错误:', e)
-          websocketLog('链接错误'+ JSON.stringify(e))
+          if(!isTest){
+            websocketLog('链接错误'+ JSON.stringify(e))
+          }
+
           this.websock.close()
           this.websock = null
           this.reconnect()
@@ -200,7 +209,9 @@
         },
         websocketclose (e) { // 关闭
           console.log('断开连接', e)
-          websocketLog('断开连接')
+          if(!isTest){
+            websocketLog('断开连接'+ JSON.stringify(e))
+          }
         },
         setIntervalWs () {
           const _this = this
@@ -463,11 +474,29 @@
        levelPriceCelve(){
          this.celves.forEach(async item=>{
            if(item.firstTime){
-                 this.doMulitCelve({
-                   celve:item,
-                   firstTime:true
+             if( this.currentPrice <= item.startPrice + item.levelPrice/2 && this.currentPrice >= item.startPrice - item.levelPrice/2){
+               item.startTime = moment().format('YYYY-MM-DD HH:mm')
+               if(item.dayTradeTimes.length ===0){
+                 item.dayTradeTimes.unshift({
+                   date:moment().format('YYYY-MM-DD'),
+                   times:0
                  })
+               }
+               this.doMulitCelve({
+                 celve:item,
+                 firstTime:true,
+                 side: item.side
+               })
+             }
                }else{
+             if (item.updated){
+               this.doMulitCelve({
+                 celve:item,
+                 firstTime:true,
+                 side: item.side
+               })
+               return
+             }
               // debugger
              if (item.autoStop === true && item.currentLevel === 0){
                this.stopCelve(item)
@@ -550,6 +579,7 @@
         },
 
         async doMulitCelve({celve,side,firstTime,qt}){
+          // debugger
           const _this = this
           let buyQt = celve.qt
           let sellQt = celve.qt
@@ -575,9 +605,8 @@
             console.time("挂单")
             console.log('发送开单命令！')
             // debugger
-
-            if(celve.levelStopType === 'reduce'){
-
+            //如果设置了减仓，则判断运行级别来设置挂单仓位
+            if(celve.isReduce){
               if (side === 'Buy'){
                 if( celve.currentLevel >= celve.stopLevel){
                   // debugger
@@ -603,29 +632,34 @@
               orders:[]
             }
             if (side === 'Buy'){
-              if( celve.currentLevel < celve.level - 1){
+              if(celve.side !='Sell' || celve.currentLevel < -1){   //如果设置单边挂单，在此判断是否执行挂多单策略，条件为不是单边空，或者单边空的时候层级在11级以下，可以挂多单
+                if( celve.currentLevel < celve.level - 1) {
+                  params.orders.push({
+                    username: celve.username[0],
+                    symbol: 'XBTUSD',
+                    // side:celve.side,
+                    side: 'Buy',
+                    orderQty: buyQt,
+                    price: firstTime ? celve.nextPrice : side == 'Buy' ? celve.nextPrice - celve.levelPrice : celve.currentPrice,
+                    ordType: 'Limit',
+                    clOrdID: celve._id + celve.currentLevel + moment().format('HHmmss')
+                  })
+                }
+              }
+              if (!firstTime){
                 params.orders.push({
                   username:celve.username[0],
                   symbol:'XBTUSD',
                   // side:celve.side,
-                  side:'Buy',
-                  orderQty:buyQt,
-                  price:firstTime ? celve.nextPrice : side=='Buy' ? celve.nextPrice - celve.levelPrice : celve.currentPrice,
+                  side:'Sell',
+                  orderQty: sellQt,
+                  price:firstTime ? celve.prePrice :  side=='Buy' ? celve.currentPrice : celve.prePrice + celve.levelPrice ,
                   ordType:'Limit',
                   clOrdID:celve._id + celve.currentLevel + moment().format('HHmmss')
                 })
               }
-              params.orders.push({
-                username:celve.username[0],
-                symbol:'XBTUSD',
-                // side:celve.side,
-                side:'Sell',
-                orderQty: sellQt,
-                price:firstTime ? celve.prePrice :  side=='Buy' ? celve.currentPrice : celve.prePrice + celve.levelPrice ,
-                ordType:'Limit',
-                clOrdID:celve._id + celve.currentLevel + moment().format('HHmmss')
-              })
             }else{
+              if (!firstTime || side ==='Both'){
               params.orders.push({
                 username:celve.username[0],
                 symbol:'XBTUSD',
@@ -635,18 +669,20 @@
                 price:firstTime ? celve.nextPrice : side=='Buy' ? celve.nextPrice - celve.levelPrice : celve.currentPrice,
                 ordType:'Limit',
                 clOrdID:celve._id + celve.currentLevel + moment().format('HHmmss')
-              })
-              if(celve.currentLevel > 1 - celve.level){
-                params.orders.push({
-                  username:celve.username[0],
-                  symbol:'XBTUSD',
-                  // side:celve.side,
-                  side:'Sell',
-                  orderQty:sellQt,
-                  price:firstTime ? celve.prePrice :  side=='Buy' ? celve.currentPrice : celve.prePrice + celve.levelPrice ,
-                  ordType:'Limit',
-                  clOrdID:celve._id + celve.currentLevel + moment().format('HHmmss')
-                })
+              })}
+              if(celve.side !='Buy' || celve.currentLevel > 1){   //如果设置单边挂单，在此判断是否执行挂空单策略，条件为不是单边多，或者单边多的时候层级在1级以上，可以挂空单
+                if(celve.currentLevel > 1 - celve.level){
+                  params.orders.push({
+                    username:celve.username[0],
+                    symbol:'XBTUSD',
+                    // side:celve.side,
+                    side:'Sell',
+                    orderQty:sellQt,
+                    price:firstTime ? celve.prePrice :  side=='Buy' ? celve.currentPrice : celve.prePrice + celve.levelPrice ,
+                    ordType:'Limit',
+                    clOrdID:celve._id + celve.currentLevel + moment().format('HHmmss')
+                  })
+                }
               }
             }
             params.postType='create mulit'
@@ -696,31 +732,43 @@
             }
           }
 
-
           console.timeEnd("挂单");
           //更新策略及日志
           console.time("策略更新")
           try {
             if(firstTime){
               celve.firstTime = false
+            }else if(celve.updated){
+              celve.updated = false
             }else{
               celve.currentPosition = side === 'Buy' ? celve.currentPosition + celve.buyQt : celve.currentPosition - celve.sellQt
-              if(celve.levelStopType === 'reduce'){
+              if(celve.isReduce){
                 celve.buyQt = buyQt
                 celve.sellQt = sellQt
                 if (side === 'Buy'){
                   if( celve.currentLevel < 0 - celve.stopLevel ){
-                    debugger
+                    // debugger
                     celve.reduceTimes += -1
                   }
                 }else if (side === 'Sell'){
                   if( celve.currentLevel > celve.stopLevel  ){
-                    debugger
+                    // debugger
                     celve.reduceTimes += 1
                   }
                 }
               }
-              celve.currentLevel =   side=='Buy' ? celve.currentLevel + 1 : celve.currentLevel - 1
+
+              const date = moment().format('YYYY-MM-DD')
+              if(date === celve.dayTradeTimes[0].date){
+                celve.dayTradeTimes[0].times += 1
+              }else{
+                celve.dayTradeTimes.unshift({
+                  date:date,
+                  times:1
+                })
+              }
+
+              celve.currentLevel = side=='Buy' ? celve.currentLevel + 1 : celve.currentLevel - 1
               celve.currentPrice = side=='Buy' ? celve.currentPrice -  celve.levelPrice : celve.currentPrice +  celve.levelPrice
               celve.prePrice =   side=='Buy' ? celve.prePrice -  celve.levelPrice : celve.prePrice +  celve.levelPrice
               celve.nextPrice =   side=='Buy' ? celve.nextPrice -  celve.levelPrice : celve.nextPrice +  celve.levelPrice
