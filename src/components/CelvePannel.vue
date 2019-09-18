@@ -15,7 +15,7 @@
           <a-col :lg="8"><a-button style="width:100%"  type="primary" @click="toEdit">修改策略</a-button></a-col>
           <a-col :lg="8">
             <div style="text-align: center;width: 100%;margin: 4px 0">
-              自动关闭：<a-switch  @change='autoStopChange' :value="currentCelve.autoStop"/>
+              自动关闭：<a-switch  @change='autoStopChange' :checked="currentCelve.autoStop"/>
             </div>
           </a-col>
         </a-row>
@@ -97,7 +97,7 @@
             </a-col>
             <a-col :lg="5"  style="text-align: center">
               <a-form-item label="是否减仓"  :labelCol="{ span: 12 }" :wrapperCol="{ span: 12 }">
-                <a-switch   v-decorator="['isReduce',{initialValue:currentCelve ? currentCelve.isReduce : isReduce}]"
+                <a-switch   v-decorator="['isReduce',{initialValue:currentCelve ? currentCelve.isReduce : isReduce,valuePropName: 'checked'}]"
                             @change='isReduceChange'
                            />
               </a-form-item>
@@ -209,7 +209,7 @@
                   placeholder="请输入减仓层级"
                   :min="0"
                   :precision="0"
-                  v-decorator="['stopLevel',{rules: [{ required: true, message: '请输入减仓层级',type:'number'}],initialValue:currentCelve ? currentCelve.stopLevel : 0}]"
+                  v-decorator="['stopLevel',{rules: [{ required: true, message: '请输入减仓层级',type:'number'}],initialValue:currentCelve ? currentCelve.stopLevel : 0 }]"
                   style="width:100%"
                 />
               </a-form-item>

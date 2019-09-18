@@ -659,7 +659,7 @@
                 })
               }
             }else{
-              if (!firstTime || side ==='Both'){
+              if (!firstTime || celve.side ==='Both'){
               params.orders.push({
                 username:celve.username[0],
                 symbol:'XBTUSD',
@@ -737,10 +737,18 @@
           console.time("策略更新")
           try {
             if(firstTime){
+              // debugger
               celve.firstTime = false
-            }else if(celve.updated){
               celve.updated = false
+              celve.buyQt = buyQt
+              celve.sellQt = sellQt
+            }else if(celve.updated){
+              // debugger
+              celve.updated = false
+              celve.buyQt = buyQt
+              celve.sellQt = sellQt
             }else{
+              // debugger
               celve.currentPosition = side === 'Buy' ? celve.currentPosition + celve.buyQt : celve.currentPosition - celve.sellQt
               if(celve.isReduce){
                 celve.buyQt = buyQt

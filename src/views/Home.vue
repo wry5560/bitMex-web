@@ -446,7 +446,7 @@ export default {
         //   this.users = accounts
         // } else {
         // const aaa = this.$store.state.user.accounts
-        // debugger
+        debugger
         this.$store.state.user.accounts.forEach(account => {
           // debugger
           const index = accounts.findIndex(item => item.email === account)
@@ -631,6 +631,8 @@ export default {
       if (!values.firstTime) {
         values.updated = true
       }
+      values.prePrice = values.currentPrice + values.levelPrice
+      values.nextPrice = values.currentPrice - values.levelPrice
       values.actions.unshift('策略更新...' + ' ' + moment().format('YYYY-MM-DD HH:mm:ss'))
       try {
         await postLevelPriceCelve(values)
