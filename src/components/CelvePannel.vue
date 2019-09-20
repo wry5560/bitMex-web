@@ -11,17 +11,13 @@
     <div class="celve">
       <template v-if="currentCelve && currentCelve.state === true && !isEdit">
         <a-row style="padding: 12px 24px;padding-bottom: 4px" :gutter="16">
-          <a-col :lg="8"><a-button  style="width:100%" @click="stop">停止策略</a-button></a-col>
-          <a-col :lg="8"><a-button style="width:100%"  type="primary" @click="toEdit">修改策略</a-button></a-col>
-          <a-col :lg="8">
-            <div style="text-align: center;width: 100%;margin: 4px 0">
-              自动关闭：<a-switch  @change='autoStopChange' :checked="currentCelve.autoStop"/>
-            </div>
-          </a-col>
+          <a-col :lg="12"><a-button  style="width:100%" @click="stop">停止策略</a-button></a-col>
+          <a-col :lg="12"><a-button style="width:100%"  type="primary" @click="toEdit">修改策略</a-button></a-col>
+
         </a-row>
         <a-row style="padding: 8px 24px;" :gutter="48">
           <a-col :lg="12"><b>运行参数：</b></a-col>
-          <a-col :lg="12"><div style="float: right"><b>{{levelStopType}}</b></div></a-col>
+          <a-col :lg="12"><div style="float: right"><b>{{levelStopType + ' '+  ' '+ sideString}}</b></div></a-col>
         </a-row>
         <a-row style="padding: 0 24px;" :gutter="48">
           <a-col :lg="12">
@@ -44,6 +40,9 @@
           </a-col>
           <a-col :lg="12" v-if="currentCelve.isReduce">
             减仓层级：<div style="float: right"><b>{{this.currentCelve.stopLevel}}</b></div>
+          </a-col>
+          <a-col :lg="12" v-if="currentCelve.autoStop">
+            自动关闭层级：<div style="float: right"><b>{{this.currentCelve.autoStopLevel}}</b></div>
           </a-col>
           <template  v-if="currentCelve.levelStopType === 'stop'">
             <a-col :lg="12">
@@ -81,7 +80,7 @@
 <!--            <a-col :lg="6" style="text-align: center">-->
 <!--              平仓策略：-->
 <!--            </a-col>-->
-            <a-col :lg="8" style="text-align: center">
+            <a-col :lg="12" style="text-align: center">
               <a-form-item>
                 <template>
                   <a-radio-group name="radioGroup1"
@@ -95,13 +94,7 @@
                 </template>
               </a-form-item>
             </a-col>
-            <a-col :lg="5"  style="text-align: center">
-              <a-form-item label="是否减仓"  :labelCol="{ span: 12 }" :wrapperCol="{ span: 12 }">
-                <a-switch   v-decorator="['isReduce',{initialValue:currentCelve ? currentCelve.isReduce : isReduce,valuePropName: 'checked'}]"
-                            @change='isReduceChange'
-                           />
-              </a-form-item>
-            </a-col>
+
 <!--            <a-col :lg="12" style="text-align: center">-->
 <!--              <a-form-item>-->
             <!--                <template>-->
@@ -115,7 +108,7 @@
             <!--                </template>-->
 <!--              </a-form-item>-->
 <!--            </a-col>-->
-            <a-col :lg="11" style="text-align: center" >
+            <a-col :lg="12" style="text-align: center" >
               <a-form-item >
               <template>
                 <a-radio-group name="radioGroup2"
@@ -128,10 +121,24 @@
               </template>
               </a-form-item>
             </a-col>
+            <a-col :lg="12"  style="text-align: center">
+              <a-form-item label="是否减仓"  :labelCol="{ span: 12 }" :wrapperCol="{ span: 12 }">
+                <a-switch   v-decorator="['isReduce',{initialValue:currentCelve ? currentCelve.isReduce : isReduce,valuePropName: 'checked'}]"
+                            @change='isReduceChange'
+                />
+              </a-form-item>
+            </a-col>
+            <a-col :lg="8">
+              <a-form-item label="是否自动关闭"  :labelCol="{ span: 12 }" :wrapperCol="{ span: 12 }">
+                <a-switch   v-decorator="['autoStop',{initialValue:currentCelve ? currentCelve.autoStop : autoStop,valuePropName: 'checked'}]"
+                            @change='autoStopChange'
+                />
+              </a-form-item>
+            </a-col>
           </a-row>
           <a-row style="padding: 0px 24px" >
             <a-col :lg="12">
-              <a-form-item label="基准价格" :labelCol="{ span: 7 }" :wrapperCol="{ span: 17 }">
+              <a-form-item label="基准价格" :labelCol="{ span: 8 }" :wrapperCol="{ span: 16 }">
                 <a-input-number
                   placeholder="请输入基准价格"
                   :min="1"
@@ -142,7 +149,7 @@
               </a-form-item>
             </a-col>
             <a-col :lg="12">
-              <a-form-item label="仓位" :labelCol="{ span: 7 }" :wrapperCol="{ span: 17 }">
+              <a-form-item label="仓位" :labelCol="{ span: 8 }" :wrapperCol="{ span: 16 }">
                 <a-input-number
                   placeholder="请输入仓位"
                   :min="1"
@@ -152,7 +159,7 @@
               </a-form-item>
             </a-col>
             <a-col :lg="12">
-              <a-form-item label="底仓" :labelCol="{ span: 7 }" :wrapperCol="{ span: 17 }">
+              <a-form-item label="底仓" :labelCol="{ span: 8 }" :wrapperCol="{ span: 16 }">
                 <a-input-number
                   placeholder="请输入底仓"
                   v-decorator="['startPosition',{rules: [{ required: true, message: '请输入底仓',type:'number'}],initialValue:currentCelve ? currentCelve.startPosition : 0}]"
@@ -162,7 +169,7 @@
               </a-form-item>
             </a-col>
             <a-col :lg="12">
-              <a-form-item label="开单层级" :labelCol="{ span: 7 }" :wrapperCol="{ span: 17 }">
+              <a-form-item label="开单层级" :labelCol="{ span: 8 }" :wrapperCol="{ span: 16 }">
                 <a-input-number
                   placeholder="请输入开单层级"
                   :min="1"
@@ -174,7 +181,7 @@
             </a-col>
 
             <a-col :lg="12">
-              <a-form-item label="层级价差" :labelCol="{ span: 7 }" :wrapperCol="{ span: 17 }">
+              <a-form-item label="层级价差" :labelCol="{ span: 8 }" :wrapperCol="{ span: 16 }">
                 <a-input-number
                   placeholder="请输入层级价差"
                   :min="1"
@@ -185,7 +192,7 @@
             </a-col>
             <template v-if="levelStopTypeValue==='stop'">
               <a-col :lg="12">
-                <a-form-item label="向上平仓价" :labelCol="{ span: 7 }" :wrapperCol="{ span: 17 }">
+                <a-form-item label="向上平仓价" :labelCol="{ span: 8 }" :wrapperCol="{ span: 16 }">
                   <a-input-number
                     placeholder="请输入向上平仓价"
                     v-decorator="['sellStopPrice',{rules: [{ required: true, message: '请输入向上平仓价',type:'number'}],initialValue:currentCelve ? currentCelve.sellStopPrice : sellStopPrice}]"
@@ -194,7 +201,7 @@
                 </a-form-item>
               </a-col>
               <a-col :lg="12">
-                <a-form-item label="向下平仓价" :labelCol="{ span: 7 }" :wrapperCol="{ span: 17 }">
+                <a-form-item label="向下平仓价" :labelCol="{ span: 8 }" :wrapperCol="{ span: 16 }">
                   <a-input-number
                     placeholder="请输入向下平仓价"
                     v-decorator="['buyStopPrice',{rules: [{ required: true, message: '请输入向下平仓价',type:'number'}],initialValue:currentCelve ? currentCelve.buyStopPrice : buyStopPrice}]"
@@ -204,12 +211,23 @@
               </a-col>
             </template>
             <a-col :lg="12" v-if="isReduce">
-              <a-form-item label="减仓层级" :labelCol="{ span: 7 }" :wrapperCol="{ span: 17 }">
+              <a-form-item label="减仓层级" :labelCol="{ span: 8 }" :wrapperCol="{ span: 16 }">
                 <a-input-number
                   placeholder="请输入减仓层级"
                   :min="0"
                   :precision="0"
                   v-decorator="['stopLevel',{rules: [{ required: true, message: '请输入减仓层级',type:'number'}],initialValue:currentCelve ? currentCelve.stopLevel : 0 }]"
+                  style="width:100%"
+                />
+              </a-form-item>
+            </a-col>
+            <a-col :lg="12" v-if="autoStop">
+              <a-form-item label="自动关闭层级" :labelCol="{ span: 8 }" :wrapperCol="{ span: 16 }">
+                <a-input-number
+                  placeholder="请输入自动关闭层级"
+                  :min="0"
+                  :precision="0"
+                  v-decorator="['autoStopLevel',{rules: [{ required: true, message: '请输入自动关闭层级',type:'number'}],initialValue:currentCelve ? currentCelve.autoStopLevel : 0 }]"
                   style="width:100%"
                 />
               </a-form-item>
@@ -246,10 +264,10 @@ export default {
       levelStopTypeValue: 'normal',
       side: 1,
       isRun: 0,
-      isReduce: 0,
+      isReduce: false,
       sellStopPrice: 1000000,
       buyStopPrice: 0,
-      autoStop: null,
+      autoStop: false,
       bodyStyle: {
         height: '400px',
         padding: 0,
@@ -270,6 +288,21 @@ export default {
         }
       }
       return null
+    },
+    sideString(){
+      if(this.currentCelve){
+        switch (this.currentCelve.side) {
+          case 'Both':
+            return ' 双向挂单'
+          case 'Buy':
+            return ' 只挂多单'
+          case 'Sell':
+            return ' 只挂空单'
+          default:
+            return ''
+        }
+      }
+      return ''
     },
     levelStopType () {
       let value = ''
@@ -295,19 +328,22 @@ export default {
     levelStopTypeChange (e) {
       this.levelStopTypeValue = e.target.value
     },
-    async autoStopChange (checked) {
-      const values = this.currentCelve
-      values.autoStop = checked
-      values.postType = 'update'
-      try {
-        await postLevelPriceCelve(values)
-        return
-      } catch (e) {
-        console.log(e)
-      }
-    },
+    // async autoStopChange (checked) {
+    //   const values = this.currentCelve
+    //   values.autoStop = checked
+    //   values.postType = 'update'
+    //   try {
+    //     await postLevelPriceCelve(values)
+    //     return
+    //   } catch (e) {
+    //     console.log(e)
+    //   }
+    // },
     isReduceChange (checked) {
       this.isReduce = checked
+    },
+    autoStopChange (checked) {
+      this.autoStop = checked
     },
     start () {
       this.form.validateFields((err, values) => {
@@ -320,6 +356,7 @@ export default {
       this.$emit('stop', this.currentCelve)
       this.levelStopTypeValue = 'normal'
       this.isReduce = false
+      this.autoStop = false
     },
     toEdit () {
       this.isEdit = true

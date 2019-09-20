@@ -498,7 +498,7 @@
                return
              }
               // debugger
-             if (item.autoStop === true && item.currentLevel === 0){
+             if (item.autoStop === true && item.currentLevel === item.autoStopLevel){
                this.stopCelve(item)
                return
              }
